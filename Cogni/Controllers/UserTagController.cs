@@ -5,7 +5,7 @@ using Cogni.Contracts.Responses;
 using Cogni.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Reflection.Metadata.Ecma335;
-using System.Web.Http;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Cogni.Controllers
 {
