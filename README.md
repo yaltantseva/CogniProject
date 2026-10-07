@@ -4,13 +4,19 @@
 
 1. Скачать [Docker desktop](https://www.docker.com/products/docker-desktop/) 😉
 2. Запустить docker desktop 🤭
-3. Создать файл secrets.json с актуальными секретами в корне проекта 🔐
+3. Проверить настройки в `dockerized.secrets.json` в корне проекта. Compose монтирует этот файл в оба backend-контейнера как `secrets.json`; отдельный корневой `secrets.json` создавать не нужно 🔐
 4. Выполнить `docker compose -f compose.dev.yml up dev_cogni dev_chat_service` в корне проекта 👾
 5. Подождать запуска ⌛
 
 С vpn на 4 шаг может выполниться не с первого раза при первом запуске 😥
 
-Запуск проекта проекта происходит в watch режиме - он будет смотреть за изменениями и пересобирать при надобности 🤯 (_но он пересобирает далеко не все, например CORS в Program.cs не получится менять в рантайме_)
+`dev_cogni` и `dev_chat_service` запускаются командой `dotnet run`, без `dotnet watch`. Исходники подключены в контейнеры как volumes, но изменения backend-кода автоматически не пересобираются. После таких изменений перезапустите сервисы:
+
+```powershell
+docker compose -f compose.dev.yml restart dev_cogni dev_chat_service
+```
+
+Фронтенд запускается в режиме Compose Watch отдельной командой ниже.
 
 Запуск фронтенда для чатов: `docker compose -f .\compose.dev.yml watch dev_chat_frontend`
 
@@ -19,7 +25,7 @@
 
 ### Миграции и тестовые данные
 
-В dev-конфигурации для `dev_cogni` задано `MIGRATE=true`. При запуске приложения EF Core автоматически применяет все ожидающие миграции к базе из корневого `secrets.json`. Перед запуском убедитесь, что PostgreSQL доступен по указанной там строке подключения.
+В dev-конфигурации для `dev_cogni` задано `MIGRATE=true`. При запуске приложения EF Core автоматически применяет все ожидающие миграции к базе, используя строку подключения из `dockerized.secrets.json`. Перед запуском убедитесь, что PostgreSQL доступен по указанной там строке подключения.
 
 Запуск приложения и автоматическое применение миграций:
 
@@ -48,13 +54,24 @@ dotnet ef database update --project Cogni/Cogni.csproj --startup-project Cogni/C
 После запуска `dev_cogni` наполните таблицы тестовыми данными:
 
 ```powershell
-.\Cogni\seed-dev.ps1
+.\Cogni\seed-dev.ps1 -Password "NewDemoPassword"
 ```
 
-Скрипт идемпотентный: повторный запуск не должен создавать дубликаты. По умолчанию создаются пользователи `alex.demo@cogni.local` и `maya.demo@cogni.local` с паролем `CogniDemo123!`. Задать пароль для новых тестовых пользователей можно при первом запуске:
+Скрипт идемпотентный: повторный запуск не должен создавать дубликаты. Он создаёт восемь тестовых пользователей:
+
+- `alex.demo@cogni.local`
+- `maya.demo@cogni.local`
+- `anna.demo@cogni.local`
+- `ivan.demo@cogni.local`
+- `olga.demo@cogni.local`
+- `max.demo@cogni.local`
+- `kate.demo@cogni.local`
+- `dmitry.demo@cogni.local`
+
+Для новых аккаунтов по умолчанию используется пароль `CogniDemo123!`. Задать другой пароль при запуске можно так:
 
 ```powershell
-.\Cogni\seed-dev.ps1 -Password "YourDemoPassword123!"
+.\Cogni\seed-dev.ps1 -Password "NewDemoPassword"
 ```
 
 Сид применяет миграции перед заполнением и создаёт данные во всех 17 таблицах. Фотографии представлены тестовыми URL; Uploadcare для наполнения не требуется. Существующим demo-аккаунтам скрипт пароль не меняет.
