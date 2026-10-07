@@ -28,10 +28,22 @@ public static class DevelopmentDatabaseSeeder
 
         var firstUser = await GetOrCreateUserAsync(context, "alex.demo@cogni.local", "Demo Alex", "Petrov", roleId, mbtiId, password);
         var secondUser = await GetOrCreateUserAsync(context, "maya.demo@cogni.local", "Demo Maya", "Ivanova", roleId, mbtiId, password);
+
+        var additionalUsers = new[]
+        {
+            await GetOrCreateUserAsync(context, "anna.demo@cogni.local", "Demo Anna", "Sokolova", roleId, mbtiId, password),
+            await GetOrCreateUserAsync(context, "ivan.demo@cogni.local", "Demo Ivan", "Smirnov", roleId, mbtiId, password),
+            await GetOrCreateUserAsync(context, "olga.demo@cogni.local", "Demo Olga", "Volkova", roleId, mbtiId, password),
+            await GetOrCreateUserAsync(context, "max.demo@cogni.local", "Demo Max", "Orlov", roleId, mbtiId, password),
+            await GetOrCreateUserAsync(context, "kate.demo@cogni.local", "Demo Kate", "Morozova", roleId, mbtiId, password),
+            await GetOrCreateUserAsync(context, "dmitry.demo@cogni.local", "Demo Dmitry", "Kuznetsov", roleId, mbtiId, password)
+        };
         await context.SaveChangesAsync();
 
         await AddAvatarIfMissingAsync(context, firstUser.Id);
         await AddAvatarIfMissingAsync(context, secondUser.Id);
+        foreach (var user in additionalUsers)
+            await AddAvatarIfMissingAsync(context, user.Id);
         if (!await context.MbtiQuestions.AnyAsync())
         {
             context.MbtiQuestions.AddRange(
@@ -47,19 +59,43 @@ public static class DevelopmentDatabaseSeeder
         await AddUserTagIfMissingAsync(context, firstUser.Id, tags[1].Id);
         await AddUserTagIfMissingAsync(context, secondUser.Id, tags[0].Id);
         await AddUserTagIfMissingAsync(context, secondUser.Id, tags[2].Id);
+        for (var i = 0; i < additionalUsers.Length; i++)
+        {
+            await AddUserTagIfMissingAsync(context, additionalUsers[i].Id, tags[(i + 1) % tags.Count].Id);
+            await AddUserTagIfMissingAsync(context, additionalUsers[i].Id, tags[(i + 2) % tags.Count].Id);
+        }
 
         var firstArticle = await GetOrCreateArticleAsync(context, firstUser, "Cogni demo: first article");
         var secondArticle = await GetOrCreateArticleAsync(context, secondUser, "Cogni demo: second article");
         var firstPost = await GetOrCreatePostAsync(context, firstUser, "A first post from the Cogni demo account.");
         var secondPost = await GetOrCreatePostAsync(context, secondUser, "A second post from the Cogni demo account.");
+        var additionalArticles = new List<Article>();
+        var additionalPosts = new List<Post>();
+        for (var i = 0; i < additionalUsers.Length; i++)
+        {
+            additionalArticles.Add(await GetOrCreateArticleAsync(context, additionalUsers[i], $"Cogni demo: article {i + 3}"));
+            additionalPosts.Add(await GetOrCreatePostAsync(context, additionalUsers[i], $"A demo post from user {i + 3}."));
+        }
         await context.SaveChangesAsync();
 
         await AddArticleImageIfMissingAsync(context, firstArticle.Id);
         await AddArticleImageIfMissingAsync(context, secondArticle.Id);
         await AddPostImageIfMissingAsync(context, firstPost.Id);
         await AddPostImageIfMissingAsync(context, secondPost.Id);
+        foreach (var article in additionalArticles)
+            await AddArticleImageIfMissingAsync(context, article.Id);
+        foreach (var post in additionalPosts)
+            await AddPostImageIfMissingAsync(context, post.Id);
+
         await AddFriendIfMissingAsync(context, firstUser.Id, secondUser.Id);
         await AddFriendIfMissingAsync(context, secondUser.Id, firstUser.Id);
+        for (var i = 0; i < additionalUsers.Length; i++)
+        {
+            var user = additionalUsers[i];
+            var nextUser = additionalUsers[(i + 1) % additionalUsers.Length];
+            await AddFriendIfMissingAsync(context, user.Id, nextUser.Id);
+            await AddFriendIfMissingAsync(context, firstUser.Id, user.Id);
+        }
 
         var chat = await context.Chats.FirstOrDefaultAsync(item => item.Id == DemoChatId);
         if (chat is null)
@@ -79,14 +115,31 @@ public static class DevelopmentDatabaseSeeder
         await context.SaveChangesAsync();
         await AddChatMemberIfMissingAsync(context, chat, firstUser.Id);
         await AddChatMemberIfMissingAsync(context, chat, secondUser.Id);
+        foreach (var user in additionalUsers)
+            await AddChatMemberIfMissingAsync(context, chat, user.Id);
         await AddMessageIfMissingAsync(context, firstUser.Id, "Hello from the Cogni demo account.");
         await AddMessageIfMissingAsync(context, secondUser.Id, "The demo data is ready.");
+        var demoMessages = new[]
+        {
+            "Nice to meet everyone here.",
+            "I am testing the new profile page.",
+            "The articles section looks good.",
+            "I added a few interests to my profile.",
+            "Let's try the chat notifications.",
+            "The development data is useful for testing."
+        };
+        for (var i = 0; i < additionalUsers.Length; i++)
+            await AddMessageIfMissingAsync(context, additionalUsers[i].Id, demoMessages[i]);
         await AddMessageStatusIfMissingAsync(context, firstUser.Id);
         await AddMessageStatusIfMissingAsync(context, secondUser.Id);
+        foreach (var user in additionalUsers)
+            await AddMessageStatusIfMissingAsync(context, user.Id);
         await context.SaveChangesAsync();
 
         await AddLikeIfMissingAsync(context, firstUser.Id, secondPost.Id);
         await AddLikeIfMissingAsync(context, secondUser.Id, firstPost.Id);
+        for (var i = 0; i < additionalUsers.Length; i++)
+            await AddLikeIfMissingAsync(context, additionalUsers[i].Id, i % 2 == 0 ? firstPost.Id : secondPost.Id);
         await transaction.CommitAsync();
 
         Console.WriteLine("Development data is ready in all 17 tables.");
@@ -126,7 +179,7 @@ public static class DevelopmentDatabaseSeeder
     private static async Task<List<Tag>> GetOrCreateTagsAsync(CogniDbContext context)
     {
         var tags = new List<Tag>();
-        foreach (var name in new[] { "Cogni Demo", "Technology", "Books" })
+        foreach (var name in new[] { "Cogni Demo", "Technology", "Books", "Music", "Travel", "Programming" })
         {
             var tag = await context.Tags.FirstOrDefaultAsync(item => item.NameTag == name);
             if (tag is null)
