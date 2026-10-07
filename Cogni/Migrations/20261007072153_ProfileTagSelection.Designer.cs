@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Cogni.Database.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Cogni.Migrations
 {
     [DbContext(typeof(CogniDbContext))]
-    partial class CogniDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007072153_ProfileTagSelection")]
+    partial class ProfileTagSelection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -198,30 +201,6 @@ namespace Cogni.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("friends", (string)null);
-                });
-
-            modelBuilder.Entity("Cogni.Database.Entities.Hobby", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id_hobby");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("character varying(45)")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id")
-                        .HasName("hobby_pkey");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("hobby", (string)null);
                 });
 
             modelBuilder.Entity("Cogni.Database.Entities.Like", b =>
@@ -570,10 +549,6 @@ namespace Cogni.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("IdHobby")
-                        .HasColumnType("integer")
-                        .HasColumnName("id_hobby");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(45)
@@ -582,8 +557,6 @@ namespace Cogni.Migrations
 
                     b.HasKey("Id")
                         .HasName("tag_category_pkey");
-
-                    b.HasIndex("IdHobby");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -858,18 +831,6 @@ namespace Cogni.Migrations
                     b.Navigation("IdCategoryNavigation");
                 });
 
-            modelBuilder.Entity("Cogni.Database.Entities.TagCategory", b =>
-                {
-                    b.HasOne("Cogni.Database.Entities.Hobby", "IdHobbyNavigation")
-                        .WithMany("Categories")
-                        .HasForeignKey("IdHobby")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("tag_category_id_hobby_fkey");
-
-                    b.Navigation("IdHobbyNavigation");
-                });
-
             modelBuilder.Entity("Cogni.Database.Entities.User", b =>
                 {
                     b.HasOne("Cogni.Database.Entities.MbtiType", "IdMbtiTypeNavigation")
@@ -942,11 +903,6 @@ namespace Cogni.Migrations
             modelBuilder.Entity("Cogni.Database.Entities.Chat", b =>
                 {
                     b.Navigation("Members");
-                });
-
-            modelBuilder.Entity("Cogni.Database.Entities.Hobby", b =>
-                {
-                    b.Navigation("Categories");
                 });
 
             modelBuilder.Entity("Cogni.Database.Entities.MbtiType", b =>

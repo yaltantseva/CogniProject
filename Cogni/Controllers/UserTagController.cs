@@ -54,6 +54,38 @@ namespace Cogni.Controllers
             return Ok(result); 
         }
 
+        [Microsoft.AspNetCore.Mvc.HttpGet]
+        public async Task<ActionResult<List<HobbyResponse>>> GetTagCatalog()
+        {
+            return Ok(await _userTagService.GetHobbyCatalog());
+        }
+
+        [Microsoft.AspNetCore.Mvc.HttpGet]
+        [Authorize]
+        public async Task<ActionResult<UserTagSelectionResponse>> GetUserTagSelection(int userId)
+        {
+            return Ok(await _userTagService.GetUserTagSelection(userId));
+        }
+
+        [Microsoft.AspNetCore.Mvc.HttpPut]
+        [Authorize]
+        public async Task<ActionResult> SetUserTagSelection(SetUserTagSelectionRequest selection)
+        {
+            string token = Request.Headers["Authorization"];
+            token = token.Replace("Bearer ", string.Empty);
+            int id = _tokenService.GetTokenPayload(token).UserId;
+
+            try
+            {
+                await _userTagService.SetUserTagSelection(id, selection);
+                return Ok();
+            }
+            catch (ArgumentException error)
+            {
+                return BadRequest(error.Message);
+            }
+        }
+
         /// <summary>
         /// Отвязывает тэг от пользователя
         /// </summary>
