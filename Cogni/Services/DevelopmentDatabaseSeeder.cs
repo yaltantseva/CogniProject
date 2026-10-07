@@ -48,6 +48,26 @@ public static class DevelopmentDatabaseSeeder
         await AddUserTagIfMissingAsync(context, secondUser.Id, tags[0].Id);
         await AddUserTagIfMissingAsync(context, secondUser.Id, tags[2].Id);
 
+        var hobbies = await GetOrCreateHobbyCatalogAsync(context);
+        await context.SaveChangesAsync();
+        foreach (var (hobbyName, categoryName) in new[]
+        {
+            ("Творчество", "рисование"),
+            ("Игры", "видеоигры"),
+            ("Медиа", "сериалы"),
+            ("Музыка", "рок"),
+            ("Творчество", "бисероплетение"),
+            ("Творчество", "вязание")
+        })
+        {
+            var category = hobbies.First(item => item.Name == hobbyName).Categories.First(item => item.Name == categoryName);
+            await AddUserTagCategoryIfMissingAsync(context, firstUser.Id, category.Id);
+        }
+        var secondUserMusic = hobbies.First(item => item.Name == "Музыка");
+        var secondUserRock = secondUserMusic.Categories.First(item => item.Name == "рок");
+        await AddUserTagCategoryIfMissingAsync(context, secondUser.Id, secondUserRock.Id);
+        await AddUserTagIfMissingAsync(context, secondUser.Id, secondUserRock.Tags.First(tag => tag.NameTag == "Nirvana").Id);
+
         var firstArticle = await GetOrCreateArticleAsync(context, firstUser, "Cogni demo: first article");
         var secondArticle = await GetOrCreateArticleAsync(context, secondUser, "Cogni demo: second article");
         var firstPost = await GetOrCreatePostAsync(context, firstUser, "A first post from the Cogni demo account.");
@@ -89,7 +109,7 @@ public static class DevelopmentDatabaseSeeder
         await AddLikeIfMissingAsync(context, secondUser.Id, firstPost.Id);
         await transaction.CommitAsync();
 
-        Console.WriteLine("Development data is ready in all 17 tables.");
+        Console.WriteLine("Development data is ready.");
         Console.WriteLine("Demo accounts: alex.demo@cogni.local and maya.demo@cogni.local");
         Console.WriteLine("Password for newly created demo accounts: COGNI_SEED_PASSWORD, or CogniDemo123! by default.");
     }
@@ -137,6 +157,81 @@ public static class DevelopmentDatabaseSeeder
             tags.Add(tag);
         }
         return tags;
+    }
+
+    private static async Task<List<Hobby>> GetOrCreateHobbyCatalogAsync(CogniDbContext context)
+    {
+        var catalog = new Dictionary<string, Dictionary<string, string[]>>
+        {
+            ["Творчество"] = new()
+            {
+                ["рисование"] = [],
+                ["бисероплетение"] = [],
+                ["вязание"] = []
+            },
+            ["Медиа"] = new()
+            {
+                ["сериалы"] = ["Очень странные дела", "Шерлок", "Во все тяжкие", "Аркейн", "Офис"]
+            },
+            ["Игры"] = new()
+            {
+                ["видеоигры"] = ["Minecraft", "The Sims 4", "Stardew Valley", "Genshin Impact", "Baldur's Gate 3"]
+            },
+            ["Спорт"] = new()
+            {
+                ["бег"] = ["5 км", "марафон"],
+                ["фитнес"] = ["силовые тренировки", "йога"],
+                ["футбол"] = ["Чемпионат мира", "Лига чемпионов"]
+            },
+            ["Музыка"] = new()
+            {
+                ["к-поп"] = ["BTS", "BLACKPINK", "Stray Kids", "TWICE"],
+                ["хип-хоп"] = ["Jay-Z", "Kendrick Lamar", "Eminem", "Drake"],
+                ["рок"] = ["The Beatles", "Nirvana", "Queen", "Radiohead"]
+            }
+        };
+        var hobbies = new List<Hobby>();
+
+        foreach (var (hobbyName, categories) in catalog)
+        {
+            var hobby = await context.Hobbies
+                .Include(item => item.Categories)
+                .ThenInclude(item => item.Tags)
+                .FirstOrDefaultAsync(item => item.Name == hobbyName);
+            if (hobby is null)
+            {
+                hobby = new Hobby { Name = hobbyName };
+                context.Hobbies.Add(hobby);
+                await context.SaveChangesAsync();
+            }
+
+            foreach (var (categoryName, tagNames) in categories)
+            {
+                var category = hobby.Categories.FirstOrDefault(item => item.Name == categoryName);
+                if (category is null)
+                {
+                    category = new TagCategory { Name = categoryName };
+                    hobby.Categories.Add(category);
+                }
+
+                foreach (var tagName in tagNames)
+                {
+                    if (!category.Tags.Any(item => item.NameTag == tagName))
+                        category.Tags.Add(new Tag { NameTag = tagName });
+                }
+            }
+            hobbies.Add(hobby);
+        }
+
+        return hobbies;
+    }
+
+    private static async Task AddUserTagCategoryIfMissingAsync(CogniDbContext context, int userId, int categoryId)
+    {
+        var userTagCategory = await context.UserTagCategories
+            .FirstOrDefaultAsync(item => item.IdUser == userId && item.IdCategory == categoryId);
+        if (userTagCategory is null)
+            context.UserTagCategories.Add(new UserTagCategory { IdUser = userId, IdCategory = categoryId });
     }
 
     private static async Task AddUserTagIfMissingAsync(CogniDbContext context, int userId, int tagId)

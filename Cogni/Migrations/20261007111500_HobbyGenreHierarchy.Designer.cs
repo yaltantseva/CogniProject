@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Cogni.Database.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Cogni.Migrations
 {
     [DbContext(typeof(CogniDbContext))]
-    partial class CogniDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007111500_HobbyGenreHierarchy")]
+    partial class HobbyGenreHierarchy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
