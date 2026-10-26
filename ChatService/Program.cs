@@ -18,13 +18,14 @@ using ChatService.CustomSwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile(
-        "secrets.json",
-        optional: false,
-        reloadOnChange: true
-    );
+try
+{
+    builder.Configuration
+       .SetBasePath(Directory.GetCurrentDirectory())
+       .AddJsonFile("secrets.json", optional: true, reloadOnChange: true);
+}
+catch (Exception ex) { }
+
 
 builder.Services.AddLogging();
 
@@ -43,7 +44,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DEV-CHATS-AllowFrontend",
         policy => policy
-            .WithOrigins("http://localhost:3000")
+            .WithOrigins("http://localhost:3000",
+            "http://127.0.0.1:5108",
+            "http://localhost:5173",   //dev_chat_frontend
+            "http://127.0.0.1:5173")
+
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());

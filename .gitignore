@@ -371,3 +371,6 @@ minio/*
 
 secrets.json
 dev_secrets.json
+
+# Tasks file
+TASKS.md

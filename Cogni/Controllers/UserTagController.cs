@@ -1,8 +1,8 @@
 ﻿using Cogni.Abstractions.Services;
-using Cogni.Authentication.Abstractions;
 using Cogni.Contracts.Requests;
 using Cogni.Contracts.Responses;
 using Cogni.Services;
+using Cogni.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using System.Reflection.Metadata.Ecma335;
 using Microsoft.AspNetCore.Authorization;
@@ -14,11 +14,9 @@ namespace Cogni.Controllers
     public class UserTagController : ControllerBase
     {
         private readonly IUserTagService _userTagService;
-        private readonly ITokenService _tokenService;
-        public UserTagController(IUserTagService userTagService, ITokenService tokenService)
+        public UserTagController(IUserTagService userTagService)
         {
             _userTagService = userTagService;
-            _tokenService = tokenService;
         }
 
         /// <summary>
@@ -28,9 +26,10 @@ namespace Cogni.Controllers
         [Authorize]
         public async Task<ActionResult> AddNewTagToUser(List<AddTagToUserRequest> tags)
         {
-            string token = Request.Headers["Authorization"];
-            token = token.Replace("Bearer ", string.Empty);
-            int id = _tokenService.GetTokenPayload(token).UserId;
+            if (User.GetUserId() is not int id)
+            {
+                return Unauthorized();
+            }
             await _userTagService.AddNewTagToUser(id, tags);
             return Ok();
         }
@@ -42,9 +41,10 @@ namespace Cogni.Controllers
         [Authorize]
         public async Task<ActionResult<List<TagResponse>>> GetUserTags()
         {
-            string token = Request.Headers["Authorization"];
-            token = token.Replace("Bearer ", string.Empty);
-            int id = _tokenService.GetTokenPayload(token).UserId;
+            if (User.GetUserId() is not int id)
+            {
+                return Unauthorized();
+            }
             var tags = await _userTagService.GetUserTags(id);
             List<TagResponse> result = new List<TagResponse>();
             foreach (var tag in tags)
@@ -71,9 +71,10 @@ namespace Cogni.Controllers
         [Authorize]
         public async Task<ActionResult> SetUserTagSelection(SetUserTagSelectionRequest selection)
         {
-            string token = Request.Headers["Authorization"];
-            token = token.Replace("Bearer ", string.Empty);
-            int id = _tokenService.GetTokenPayload(token).UserId;
+            if (User.GetUserId() is not int id)
+            {
+                return Unauthorized();
+            }
 
             try
             {
@@ -93,9 +94,10 @@ namespace Cogni.Controllers
         [Authorize]
         public async Task<ActionResult> RemoveTagFromUser(List<AddTagToUserRequest> tags)
         {
-            string token = Request.Headers["Authorization"];
-            token = token.Replace("Bearer ", string.Empty);
-            int id = _tokenService.GetTokenPayload(token).UserId;
+            if (User.GetUserId() is not int id)
+            {
+                return Unauthorized();
+            }
             await _userTagService.RemoveTagFromUser(id, tags);
             return Ok();
         }

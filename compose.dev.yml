@@ -53,20 +53,19 @@ services:
       timeout: 5s
 
   minio:
-    image: minio/minio
+    image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
     restart: always
+    command: server /data --console-address ":9001"
     environment:
-      MINIO_HOST: "http://minio:9000"
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: password123
-      BUCKET_NAME: "chat-files"
-    entrypoint: ["/bin/sh", "/data/init.sh"]
     ports:
       - "9000:9000"
+      - "9001:9001"
     volumes:
       - ./minio:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "silo", "healthcheck", "ready"]
       interval: 10s
       retries: 5
       start_period: 10s
@@ -92,6 +91,8 @@ services:
       - ./Shared:/src/Shared
       - ./dockerized.secrets.json:/src/Cogni/secrets.json
   dev_chat_service:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
     build:
       context: .
       dockerfile: ./ChatService/Dockerfile.dev

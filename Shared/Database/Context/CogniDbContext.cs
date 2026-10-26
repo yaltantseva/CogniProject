@@ -38,6 +38,8 @@ public partial class CogniDbContext : DbContext
 
     public virtual DbSet<MbtiQuestion> MbtiQuestions { get; set; }
 
+    public virtual DbSet<SakinorvaCatalog> SakinorvaCatalogs { get; set; }
+
     public virtual DbSet<MbtiType> MbtiTypes { get; set; }
 
     public virtual DbSet<Message> Messages { get; set; }
@@ -253,6 +255,14 @@ public partial class CogniDbContext : DbContext
             entity.Property(e => e.Question)
                 .HasMaxLength(130)
                 .HasColumnName("question");
+        });
+
+        modelBuilder.Entity<SakinorvaCatalog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sakinorva_catalog_pkey");
+            entity.ToTable("sakinorva_catalog");
+            entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(e => e.JsonContent).HasColumnName("json_content").HasColumnType("jsonb").IsRequired();
         });
 
         modelBuilder.Entity<MbtiType>(entity =>
