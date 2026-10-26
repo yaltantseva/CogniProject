@@ -95,9 +95,6 @@ namespace Cogni.Controllers
             return Ok();
         }
 
-        
-
-
         /// <summary>
         /// Меняет текущую аватарку на новую
         /// </summary>
@@ -113,6 +110,7 @@ namespace Cogni.Controllers
             var ava = await _userService.ChangeAvatar(id, request.Picture);
             return Ok(ava);
         }
+
         /// <summary>
         /// Меняет текущий баннер на новый
         /// </summary>
@@ -121,11 +119,52 @@ namespace Cogni.Controllers
         [Authorize]
         public async Task<ActionResult> ChangeBanner([FromForm] ImageUploadRequest request)
         {
+            var file = request.Picture;
+            if (file == null || file.Length == 0) return BadRequest(new {
+                error = "Необходимо загрузить непустой файл изображения."
+            });
+
+            // 10 МиБ
+            const long maxFileSize = 10 * 1024 * 1024;
+
+            if (file.Length > maxFileSize) return BadRequest(new {
+                error = "Размер изображения не должен превышать 10 МБ."
+            });
+
+            var allowedContentTypes = new[] {
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            };
+
+            if (!allowedContentTypes.Contains(file.ContentType)) return BadRequest(new {
+                error = "Недопустимый формат изображения. Разрешены JPEG, PNG и WEBP."
+            });
+
             string token = Request.Headers["Authorization"];
             token = token.Replace("Bearer ", string.Empty);
             int id = _tokenService.GetTokenPayload(token).UserId;
-            var ban = await _userService.ChangeBanner(id, request.Picture);
+            var ban = await _userService.ChangeBanner(id, file);
             return Ok(ban);
+        }
+
+        /// <summary>
+        /// Удаляет текущий баннер
+        /// </summary>
+        [Authorize]
+        [HttpDelete("RemoveBanner")]
+        public async Task<ActionResult> RemoveBanner()
+        {
+            string token = Request.Headers["Authorization"];
+            token = token.Replace("Bearer ", string.Empty);
+            int id = _tokenService.GetTokenPayload(token).UserId;
+
+            bool removed = await _userService.RemoveBanner(id);
+            if (!removed) return NotFound(new {
+                error = "Пользователь не найден"
+            });
+
+            return NoContent();
         }
 
         /// <summary>

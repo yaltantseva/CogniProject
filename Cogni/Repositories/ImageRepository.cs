@@ -11,9 +11,27 @@ namespace Cogni.Database.Repositories
 
         public ImageRepository(IConfiguration config) 
         {
-            UPLOADCARE_PUB_KEY = config["ImageRepository:UPLOADCARE_PUB_KEY"];
-            UPLOADCARE_SECRET_KEY = config["ImageRepository:UPLOADCARE_SECRET_KEY"];
+            var pub_key = config["ImageRepository:UPLOADCARE_PUB_KEY"];
+            var sec_key = config["ImageRepository:UPLOADCARE_SECRET_KEY"];
+
+            UPLOADCARE_PUB_KEY = pub_key?.Trim() ?? string.Empty;
+            UPLOADCARE_SECRET_KEY = sec_key?.Trim() ?? string.Empty;
+
+            if (String.IsNullOrWhiteSpace(UPLOADCARE_PUB_KEY)) {
+                throw new InvalidOperationException(
+                    "Не задана конфигурация " +
+                    "'ImageRepository:UPLOADCARE_PUB_KEY'."
+                );
+            }
+
+            if (String.IsNullOrWhiteSpace(UPLOADCARE_SECRET_KEY)) {
+                throw new InvalidOperationException(
+                    "Не задана конфигурация " +
+                    "'ImageRepository:UPLOADCARE_SECRET_KEY'."
+                );
+            }
         }
+
         public async Task<String> UploadImage(IFormFile file)
         {
             using var client = new HttpClient();
