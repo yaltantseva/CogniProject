@@ -1,5 +1,6 @@
 using Cogni.Abstractions.Repositories;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 namespace Cogni.Database.Repositories
 {
     public class ImageRepository : IImageRepository
@@ -11,22 +12,35 @@ namespace Cogni.Database.Repositories
 
         public ImageRepository(IConfiguration config) 
         {
+
             var pub_key = config["ImageRepository:UPLOADCARE_PUB_KEY"];
-            var sec_key = config["ImageRepository:UPLOADCARE_SECRET_KEY"];
-
             UPLOADCARE_PUB_KEY = pub_key?.Trim() ?? string.Empty;
-            UPLOADCARE_SECRET_KEY = sec_key?.Trim() ?? string.Empty;
-
             if (String.IsNullOrWhiteSpace(UPLOADCARE_PUB_KEY)) {
                 throw new InvalidOperationException(
                     "Не задана конфигурация " +
                     "'ImageRepository:UPLOADCARE_PUB_KEY'."
                 );
             }
+            else if (!Regex.IsMatch(UPLOADCARE_PUB_KEY, @"^[a-z0-9]+$"))
+            {
+                throw new InvalidOperationException(
+                    "Неверный формат " +
+                    "'ImageRepository:UPLOADCARE_PUB_KEY'."
+                );
+            }
 
+            var sec_key = config["ImageRepository:UPLOADCARE_SECRET_KEY"];
+            UPLOADCARE_SECRET_KEY = sec_key?.Trim() ?? string.Empty;
             if (String.IsNullOrWhiteSpace(UPLOADCARE_SECRET_KEY)) {
                 throw new InvalidOperationException(
                     "Не задана конфигурация " +
+                    "'ImageRepository:UPLOADCARE_SECRET_KEY'."
+                );
+            }
+            else if (!Regex.IsMatch(UPLOADCARE_SECRET_KEY, @"^[a-z0-9]+$"))
+            {
+                throw new InvalidOperationException(
+                    "Неверный формат " +
                     "'ImageRepository:UPLOADCARE_SECRET_KEY'."
                 );
             }
