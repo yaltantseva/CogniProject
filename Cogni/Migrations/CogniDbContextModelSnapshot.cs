@@ -226,23 +226,32 @@ namespace Cogni.Migrations
 
             modelBuilder.Entity("Cogni.Database.Entities.Like", b =>
                 {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("integer")
+                        .HasColumnName("post_id");
+
                     b.Property<DateTime?>("LikedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("liked_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<int?>("PostId")
-                        .HasColumnType("integer")
-                        .HasColumnName("post_id");
+                    b.Property<string>("ReactionType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("like")
+                        .HasColumnName("reaction_type");
 
-                    b.Property<int?>("UserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_id");
+                    b.HasKey("UserId", "PostId")
+                        .HasName("likes_pkey");
 
                     b.HasIndex("PostId");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("likes", (string)null);
                 });
@@ -535,6 +544,26 @@ namespace Cogni.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Cogni.Database.Entities.SakinorvaCatalog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("JsonContent")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("json_content");
+
+                    b.HasKey("Id")
+                        .HasName("sakinorva_catalog_pkey");
+
+                    b.ToTable("sakinorva_catalog", (string)null);
+                });
+
             modelBuilder.Entity("Cogni.Database.Entities.Tag", b =>
                 {
                     b.Property<int>("Id")
@@ -791,12 +820,14 @@ namespace Cogni.Migrations
                         .WithMany()
                         .HasForeignKey("PostId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
                         .HasConstraintName("likes_post_id_fkey");
 
                     b.HasOne("Cogni.Database.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
                         .HasConstraintName("likes_user_id_fkey");
 
                     b.Navigation("Post");
