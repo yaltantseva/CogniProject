@@ -96,9 +96,9 @@ namespace Cogni.Controllers
         /// 
 
   
-        [HttpGet("{id}")]
+        [HttpPost]
         [Authorize]
-        public async Task<ActionResult<List<PostResponse>>> GetAllUserPost(int id)
+        public async Task<ActionResult<List<PostResponse>>> GetAllUserPost([FromQuery] int id)
         {
             if (!TryGetCurrentUserId(out int currentUserId))
                 return Unauthorized();

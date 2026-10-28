@@ -195,12 +195,12 @@ namespace Cogni.Services
                 Created = article.Created,
                 ReadsNumber = article.ReadsNumber,
                 ArticlePreview = article.ArticlePreview,
-                ArticleImages = article.ArticleImages.Select(ai => new ArticleImageModel
+                ArticleImages = article.ArticleImages != null ? article.ArticleImages.Select(ai => new ArticleImageModel
                 {
                     Id = ai.Id,
                     ArticleId = ai.ArticleId,
                     ImageUrl = ai.ImageUrl
-                }).ToList(),
+                }).ToList() : new List<ArticleImageModel>(),
                 IdUserNavigation = article.IdUserNavigation
             };
         }
