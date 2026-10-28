@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Cogni.Contracts;
 using Cogni.Services;
 using Cogni.Contracts.Responses;
@@ -65,9 +65,9 @@ namespace Cogni.Controllers
         [Authorize]
         public async Task<ActionResult<ArticleResponse>> CreateArticle([FromForm] CreateArticleRequest request)
         {
-            if (string.IsNullOrEmpty(request.ArticleName) || string.IsNullOrEmpty(request.ArticleBody) || string.IsNullOrEmpty(request.Annotation))
+            if (string.IsNullOrWhiteSpace(request.ArticleName) || string.IsNullOrWhiteSpace(request.ArticleBody))
             {
-                return BadRequest("Название, текст или аннотация статьи не могут быть пустыми");
+                return BadRequest("Название и текст статьи не могут быть пустыми");
             }
 
             if (User.GetUserId() is not int userId)
@@ -77,7 +77,12 @@ namespace Cogni.Controllers
 
             try
             {
-                var createdArticle = await _articleService.CreateArticleAsync(request, userId);
+                var effectiveAnnotation = string.IsNullOrWhiteSpace(request.Annotation) || request.Annotation == "undefined"
+                    ? (request.ArticleBody.Length > 150 ? request.ArticleBody[..150] : request.ArticleBody)
+                    : request.Annotation;
+
+                var normalizedRequest = request with { Annotation = effectiveAnnotation };
+                var createdArticle = await _articleService.CreateArticleAsync(normalizedRequest, userId);
 
                 var imageUrls = createdArticle.ArticleImages.Select(i => i.ImageUrl).ToList();
                 var articleResponse = new ArticleResponse(createdArticle.Id, createdArticle.ArticleName, createdArticle.ArticleBody, imageUrls, createdArticle.IdUser, createdArticle.Annotation, createdArticle.Created, createdArticle.ReadsNumber, createdArticle.ArticlePreview);

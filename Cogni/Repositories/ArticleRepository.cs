@@ -24,7 +24,12 @@ namespace Cogni.Database.Repositories
                 {
                     Id = a.Id,
                     ArticleName = a.ArticleName,
-                    Annotation = a.Annotation
+                    Annotation = a.Annotation,
+                    IdUser = a.IdUser,
+                    ArticlePreview = a.ArticlePreview,
+                    Created = a.Created,
+                    ReadsNumber = a.ReadsNumber,
+                    ArticleImages = new List<ArticleImageModel>()
                 })
                 .ToListAsync();
         }
