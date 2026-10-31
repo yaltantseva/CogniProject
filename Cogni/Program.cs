@@ -71,7 +71,7 @@ builder.Services.AddSwaggerGen(opt =>
                     Id = "Bearer"
                 }
             },
-            new string[] { "api" } // ���������, ��� ����� ������������ ����������� � ��������� � �������� "api"
+            new string[] { "api" } //          ,                                                           "api"
         }
     });
 });
@@ -103,7 +103,7 @@ builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IFriendRepository, FriendRepository>();
 builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IImageService, ImageService>();
-builder.Services.AddScoped<IImageRepository, ImageRepository>();
+builder.Services.AddHttpClient<IImageRepository, ImageRepository>();
 builder.Services.AddScoped<IMbtiRepository, MbtiRepository>();
 builder.Services.AddScoped<IMbtiService, MbtiService>();
 builder.Services.AddScoped<IImageConverterService, ImageConverterService>();
