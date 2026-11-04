@@ -156,8 +156,28 @@ namespace Cogni.Controllers
         [Authorize]
         public async Task<ActionResult> DeleteArticle(int id)
         {
-            await _articleService.DeleteArticleAsync(id);
-            return NoContent();
+            // Получаем текущего пользователя
+            if (User.GetUserId() is not int userId)
+            {
+                return Unauthorized();
+            }
+
+            // Проверяем, является ли он админом
+            bool isAdmin = User.IsInRole("Admin");
+
+            try
+            {
+                await _articleService.DeleteArticleAsync(id, userId, isAdmin);
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(ex.Message); // Статья не найдена (404)
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ex.Message); // Нет прав (403 Forbid)
+            }
         }
     }
 }

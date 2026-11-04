@@ -13,5 +13,5 @@ public interface IArticleService
     Task IncrementArticleReadsAsync(int id);
     Task<List<ArticlePreviewResponse>> GetArticlesPreviewesAsync();
 
-    Task DeleteArticleAsync(int id);
+    Task DeleteArticleAsync(int id, int currentUserId, bool isAdmin);
 }

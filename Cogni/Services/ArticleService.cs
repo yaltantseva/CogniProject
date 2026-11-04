@@ -179,8 +179,23 @@ namespace Cogni.Services
             await _articleRepository.UpdateReadsNumber(article.Id, article.ReadsNumber.Value); // Нужно реализовать в репозитории
         }
 
-        public async Task DeleteArticleAsync(int id)
+        public async Task DeleteArticleAsync(int id, int currentUserId, bool isAdmin)
         {
+            // 1. Загружаем статью, чтобы узнать её автора
+            var article = await _articleRepository.GetById(id);
+
+            if (article == null)
+            {
+                throw new ArgumentException("Статья не найдена.");
+            }
+
+            // 2. Проверяем права: если это не автор и не админ — запрещаем
+            if (article.IdUser != currentUserId && !isAdmin)
+            {
+                throw new UnauthorizedAccessException("Вы не можете удалять чужие статьи.");
+            }
+
+            // 3. Если всё ок — удаляем
             await _articleRepository.Delete(id);
         }
         private ArticleModel ToModel(ArticleModel article)
