@@ -127,7 +127,11 @@ namespace Cogni.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return NotFound(ex.Message); // Статья не найдена (404)
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ex.Message); // Нет прав на редактирование (403)
             }
             catch (SixLabors.ImageSharp.UnknownImageFormatException ex)
             {

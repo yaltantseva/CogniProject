@@ -124,10 +124,16 @@ namespace Cogni.Services
         {
             var article = await _articleRepository.GetById(id);
 
-
             if (article == null)
             {
-                throw new Exception("Статья не найдена.");
+                throw new ArgumentException("Статья не найдена."); // Заменили Exception на ArgumentException для 404
+            }
+
+            // ДОБАВЛЕНА ПРОВЕРКА: если это не автор и не админ
+            // (Проверку на админа мы сюда не передаем, но если нужно, можно добавить bool isAdmin)
+            if (article.IdUser != userId)
+            {
+                throw new UnauthorizedAccessException("Вы не можете редактировать чужие статьи.");
             }
 
             string? articlePreviewUrl = article.ArticlePreview;
