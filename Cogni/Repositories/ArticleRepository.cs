@@ -62,7 +62,11 @@ namespace Cogni.Database.Repositories
 
         public async Task Update(int id, string articleName, string articleBody, List<string> imageUrls, string annotation, string? articlePreview)
         {
-            var article = await _context.Articles.FindAsync(id);
+            // Загружаем статью ВМЕСТЕ с картинками, чтобы Clear() не вызвал NullReferenceException
+            var article = await _context.Articles
+                .Include(a => a.ArticleImages)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
             if (article != null)
             {
                 article.ArticleName = articleName;
@@ -70,6 +74,7 @@ namespace Cogni.Database.Repositories
                 article.Annotation = annotation;
                 article.ArticlePreview = articlePreview;
 
+                // Очищаем старые связи и добавляем новые
                 article.ArticleImages.Clear();
                 foreach (var imageUrl in imageUrls)
                 {
