@@ -28,41 +28,44 @@ namespace Cogni.Services
 
         public async Task<List<ArticlePreviewResponse>> GetArticlesPreviewesAsync()
         {
-            var articles = await _articleRepository.GetAll();
+            // Получаем статьи сразу с авторами и их MBTI
+            var articles = await _articleRepository.GetAllWithAuthors();
 
             List<ArticlePreviewResponse> articlePreviewResponses = new List<ArticlePreviewResponse>();
 
             foreach (var article in articles)
             {
-                if (article == null)
+                if (article == null || article.IdUserNavigation == null)
                 {
-                    continue;
+                    continue; // Пропускаем, если статья пустая или автор не найден
                 }
 
-                var user = await _userService.GetPublicUser(article.IdUser);
-                if (user == null)
-                {
-                    continue;
-                }
+                var user = article.IdUserNavigation;
 
                 // Вычисление времени с момента публикации
                 var timeSincePublication = article.Created.HasValue
                     ? article.Created.Value.ToLocalTime().Humanize(culture: new System.Globalization.CultureInfo("ru-RU"))
                     : "Неизвестно";
+
                 var r = new ArticlePreviewResponse(
                     article.Id,
                     article.IdUser,
                     article.ArticlePreview,
-                    user.Image,
-                    user.Name,
+                    null, // Картинки в User нет, передаем null
+                    user.Name, // Имя автора
                     article.ReadsNumber ?? 0,
                     timeSincePublication,
-                    user.TypeMbti,
+                    
+                    // Достаем MBTI из навигации. Если её нет, то null
+                    user.IdMbtiTypeNavigation != null ? user.IdMbtiTypeNavigation.NameOfType : null, 
+                    
                     article.ArticleName,
                     article.Annotation
                 );
+                
                 articlePreviewResponses.Add(r);
             }
+            
             return articlePreviewResponses;
         }
 

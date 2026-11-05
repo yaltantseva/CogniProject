@@ -38,6 +38,13 @@ namespace Cogni.Database.Repositories
             return article != null ? ToModel(article) : null;
         }
 
+        public async Task<List<Article>> GetAllWithAuthors()
+        {
+            return await _context.Articles
+                .Include(a => a.IdUserNavigation)
+                    .ThenInclude(u => u.IdMbtiTypeNavigation) // Подтягиваем название MBTI
+                .ToListAsync();
+        }
         private ArticleModel ToModel(Article article)
         {
             return new ArticleModel

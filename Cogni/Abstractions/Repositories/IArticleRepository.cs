@@ -12,5 +12,6 @@ namespace Cogni.Abstractions.Repositories
         Task UpdateReadsNumber(int id, int readsNumber);
 
         Task Delete(int id);
+        Task<List<Article>> GetAllWithAuthors();
     }
 }
