@@ -38,6 +38,8 @@ public partial class CogniDbContext : DbContext
 
     public virtual DbSet<MbtiQuestion> MbtiQuestions { get; set; }
 
+    public virtual DbSet<SakinorvaCatalog> SakinorvaCatalogs { get; set; }
+
     public virtual DbSet<MbtiType> MbtiTypes { get; set; }
 
     public virtual DbSet<Message> Messages { get; set; }
@@ -220,21 +222,35 @@ public partial class CogniDbContext : DbContext
         modelBuilder.Entity<Like>(entity =>
         {
         entity
-            .HasNoKey()
-            .ToTable("likes");
-            entity.Property(e => e.LikedAt)
-                            .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                            .HasColumnType("timestamp without time zone")
-                            .HasColumnName("liked_at");
-            entity.Property(e => e.PostId).HasColumnName("post_id");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
+            .HasKey(e => new { e.UserId, e.PostId })
+            .HasName("likes_pkey");
 
-            entity.HasOne(d => d.Post).WithMany()
+            entity.ToTable("likes");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id");
+
+            entity.Property(e => e.PostId)
+                .HasColumnName("post_id");
+
+            entity.Property(e => e.ReactionType)
+                .HasMaxLength(20)
+                .HasDefaultValue("like")
+                .HasColumnName("reaction_type");
+
+            entity.Property(e => e.LikedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("liked_at");
+
+            entity.HasOne(d => d.Post)
+                .WithMany()
                 .HasForeignKey(d => d.PostId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("likes_post_id_fkey");
 
-            entity.HasOne(d => d.User).WithMany()
+            entity.HasOne(d => d.User)
+                .WithMany()
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("likes_user_id_fkey");
@@ -252,6 +268,14 @@ public partial class CogniDbContext : DbContext
             entity.Property(e => e.Question)
                 .HasMaxLength(130)
                 .HasColumnName("question");
+        });
+
+        modelBuilder.Entity<SakinorvaCatalog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sakinorva_catalog_pkey");
+            entity.ToTable("sakinorva_catalog");
+            entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(e => e.JsonContent).HasColumnName("json_content").HasColumnType("jsonb").IsRequired();
         });
 
         modelBuilder.Entity<MbtiType>(entity =>

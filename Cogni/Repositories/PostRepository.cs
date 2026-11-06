@@ -30,6 +30,40 @@ public class PostRepository : IPostRepository
         await _context.SaveChangesAsync();
     }
 
+
+    public async Task ToggleReactionAsync(
+    int postId,
+    int userId,
+    string reactionType = "like")
+    {
+        var existingReaction = await _context.Set<Like>()
+            .FirstOrDefaultAsync(r =>
+                r.PostId == postId &&
+                r.UserId == userId);
+
+        if (existingReaction is null)
+        {
+            var reaction = new Like
+            {
+                PostId = postId,
+                UserId = userId,
+                ReactionType = reactionType
+            };
+
+            await _context.Set<Like>().AddAsync(reaction);
+        }
+        else if (existingReaction.ReactionType == reactionType)
+        {
+            _context.Set<Like>().Remove(existingReaction);
+        }
+        else
+        {
+            existingReaction.ReactionType = reactionType;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<List<Post>> GetAllUserPosts(int id)
     {
         var posts = await _context.Posts
@@ -46,5 +80,27 @@ public class PostRepository : IPostRepository
         return up;
 
     }
+
+    public async Task<Post?> GetPostById(int id)
+    {
+        return await _context.Posts.FindAsync(id);
+    }
+
+
+    public async Task<(int ReactionsCount, bool IsReactedByCurrentUser)> GetReactionInfoAsync(
+    int postId,
+    int userId)
+    {
+        var reactions = _context.Likes
+            .Where(r => r.PostId == postId);
+
+        int reactionsCount = await reactions.CountAsync();
+
+        bool isReactedByCurrentUser = await reactions
+            .AnyAsync(r => r.UserId == userId);
+
+        return (reactionsCount, isReactedByCurrentUser);
+    }
+
 }
 
