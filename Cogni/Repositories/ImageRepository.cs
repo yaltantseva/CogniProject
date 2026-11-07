@@ -45,14 +45,8 @@ namespace Cogni.Database.Repositories
                 throw new InvalidOperationException($"Не задан параметр конфигурации {field}");
             return str;
         }
-        
-        public async Task<string> UploadImage(IFormFile file)
-        {
-            var res = await _UploadImage(file);
-            return res.Url;
-        }
 
-        public async Task<(string Url, string Id)> _UploadImage(IFormFile file)
+        public async Task<(string Url, string Id)> UploadImage(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 throw new ArgumentException("Файл не выбран или пуст");

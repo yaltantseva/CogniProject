@@ -28,7 +28,7 @@ public class UserService : IUserService
 
     public async Task<string?> ChangeAvatar(int id, IFormFile picture)
     {
-        var uploadRes = await _imageService._UploadImage(picture);
+        var uploadRes = await _imageService.UploadImage(picture);
         bool success = await _userRepository.ChangeAvatar(id, uploadRes.Url);
         if (success) return uploadRes.Url;
 
@@ -38,7 +38,7 @@ public class UserService : IUserService
 
     public async Task<string?> ChangeBanner(int id, IFormFile picture)
     {
-        var uploadRes = await _imageService._UploadImage(picture);
+        var uploadRes = await _imageService.UploadImage(picture);
         string? res = await _userRepository.ChangeBanner(id, uploadRes.Url);
         if (res is not null) return res;
 

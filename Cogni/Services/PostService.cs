@@ -25,7 +25,7 @@ public class PostService : IPostService
         {
             foreach (var i in post.Files)
             {
-                p.PostImages.Add(new PostImage { ImageUrl = await _imageService.UploadImage(i) });
+                p.PostImages.Add(new PostImage { ImageUrl = (await _imageService.UploadImage(i)).Url });
             }
         } 
         return await _postRepository.CreatePost(p);
