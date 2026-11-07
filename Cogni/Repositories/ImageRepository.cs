@@ -5,11 +5,11 @@ namespace Cogni.Database.Repositories
 {
     public class ImageRepository : IImageRepository
     {
-        private string UPLOADCARE_BASE_CDN;
-        private string UPLOADCARE_PUB_KEY;
-        private string UPLOADCARE_SECRET_KEY;
+        private readonly string UPLOADCARE_BASE_CDN;
+        private readonly string UPLOADCARE_PUB_KEY;
+        private readonly string UPLOADCARE_SECRET_KEY;
 
-        private HttpClient _httpClient;
+        private readonly HttpClient _httpClient;
 
         // Добавляет изображение на сервер и возвращает URL с ID
 
@@ -45,8 +45,14 @@ namespace Cogni.Database.Repositories
                 throw new InvalidOperationException($"Не задан параметр конфигурации {field}");
             return str;
         }
+        
+        public async Task<string> UploadImage(IFormFile file)
+        {
+            var res = await _UploadImage(file);
+            return res.Url;
+        }
 
-        public async Task<String> UploadImage(IFormFile file)
+        public async Task<(string Url, string Id)> _UploadImage(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 throw new ArgumentException("Файл не выбран или пуст");
@@ -75,16 +81,25 @@ namespace Cogni.Database.Repositories
             if (!jsonDoc.RootElement.TryGetProperty("file", out var fileIdEl))
                 throw new Exception("Ответ от сервера не содержит ID файла");
             
-            return $"{UPLOADCARE_BASE_CDN}/{fileIdEl.GetString()}/";
+            var picId = $"{fileIdEl.GetString()}";
+            return ($"{UPLOADCARE_BASE_CDN}/{picId}/", picId);
         }
         
         // Удаляет изображение с сервера по ID
         public async Task DeleteImage(string fileId)
         {
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Uploadcare.Simple {UPLOADCARE_PUB_KEY}:{UPLOADCARE_SECRET_KEY}");
-            var response = await _httpClient.DeleteAsync($"https://api.uploadcare.com/files/{fileId}/");
-            if (!response.IsSuccessStatusCode)
-                throw new Exception("Ошибка при удалении изображения");
+            using var request = new HttpRequestMessage(
+                HttpMethod.Delete,
+                $"https://api.uploadcare.com/files/{fileId}/storage/"
+            );
+
+            request.Headers.Add(
+                "Authorization",
+                $"Uploadcare.Simple {UPLOADCARE_PUB_KEY}:{UPLOADCARE_SECRET_KEY}"
+            );
+
+            var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode) throw new Exception("Ошибка при удалении изображения");
         }
     }
 }

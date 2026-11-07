@@ -10,11 +10,11 @@ public interface IUserRepository
     Task<PrivateUserModel> CreateUser(User user);//создание
     Task<bool> CheckUser(string login);//проверка существования пользователя с таким логином
     Task SetMbtiType(int userid, int mbtiId);//установить результаты теста или изменить тип MBTY
-    Task ChangeAvatar(int id,string picLink);//изменить автарарку
+    Task<bool> ChangeAvatar(int id,string picLink);//изменить автарарку
     Task<string?> ChangeBanner(int id, string picLink);//изменить баннер на странице пользователя
     Task<bool> RemoveBanner(int id); // удалить баннер
     Task<bool> ChangeName(int id, string name, string surname);//изменить имя
-    Task ChangePassword(int id, string PasHash, byte[] salt);//изменить пароль
+    Task<bool> ChangePassword(int id, string PasHash, byte[] salt);//изменить пароль
     Task<bool> ChangeDescription(int id, string description);//изменить описание
     Task<string?> GetUserRole(int id);//возвращает данные для access токена при рефреше
     Task<List<FriendDto>> GetRandomUsers(int userId, int startsFrom, int limit); //используется для получения случайных пользователей на странице с поиском друзей
