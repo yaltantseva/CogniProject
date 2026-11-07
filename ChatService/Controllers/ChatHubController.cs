@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -17,8 +16,6 @@ namespace ChatService.Controllers;
 [SignalRHubRoot]
 public class ChatHubController : Hub
 {
-    private static readonly ConcurrentDictionary<string, string> ConnectionToUser = new();
-    private static readonly ConcurrentDictionary<string, HashSet<string>> UserToConnections = new();
     private readonly ILogger<ChatHubController> _logger;
     private readonly IHubService _hubService;
     private readonly IChatRepository _db;
