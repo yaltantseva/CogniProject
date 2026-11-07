@@ -78,7 +78,6 @@ public partial class CogniDbContext : DbContext
             .HasColumnName("id_article")
             .ValueGeneratedOnAdd();
             entity.Property(e => e.ArticleBody)
-                .HasMaxLength(1024)
                 .HasColumnName("article_body");
             entity.Property(e => e.ArticleName)
                 .HasMaxLength(128)
@@ -171,10 +170,10 @@ public partial class CogniDbContext : DbContext
             .HasColumnName("id_user")
             .ValueGeneratedOnAdd();
             entity.Property(e => e.Description)
-                .HasMaxLength(45)
+                .HasMaxLength(1000)
                 .HasColumnName("description");
             entity.Property(e => e.Email)
-                .HasMaxLength(45)
+                .HasMaxLength(256)
                 .HasColumnName("email");
             entity.Property(e => e.IdMbtiType).HasColumnName("id_mbti_type");
             entity.Property(e => e.IdRole).HasColumnName("id_role");
