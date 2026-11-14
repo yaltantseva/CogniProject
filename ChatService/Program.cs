@@ -164,8 +164,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => {
         c.InjectJavascript("/Swagger/inject.js");
     });
-    app.UseCors("DEV-CHATS-AllowFrontend");
 }
+app.UseCors("DEV-CHATS-AllowFrontend");
 
 app.UseMiddleware<TokenExceptionHandlingMiddleware>();
 app.UseAuthentication();
