@@ -26,17 +26,24 @@ public class UserService : IUserService
         _imageService = imageService;
     }
 
-    public async Task<string> ChangeAvatar(int id, IFormFile picture)
+    public async Task<string?> ChangeAvatar(int id, IFormFile picture)
     {
-        var picLink = await _imageService.UploadImage(picture);
-        await _userRepository.ChangeAvatar(id, picLink);
-        return picLink;
+        var uploadRes = await _imageService.UploadImage(picture);
+        bool success = await _userRepository.ChangeAvatar(id, uploadRes.Url);
+        if (success) return uploadRes.Url;
+
+        await _imageService.DeleteImage(uploadRes.Id);
+        return null;
     }
 
     public async Task<string?> ChangeBanner(int id, IFormFile picture)
     {
-        var picLink = await _imageService.UploadImage(picture);
-        return await _userRepository.ChangeBanner(id, picLink);
+        var uploadRes = await _imageService.UploadImage(picture);
+        string? res = await _userRepository.ChangeBanner(id, uploadRes.Url);
+        if (res is not null) return res;
+
+        await _imageService.DeleteImage(uploadRes.Id);
+        return null;
     }
 
     public async Task<bool> RemoveBanner(int id)
@@ -44,27 +51,26 @@ public class UserService : IUserService
         return await _userRepository.RemoveBanner(id);
     }
 
+    public async Task<bool> ChangeName(int id, string name, string surname)
+    {
+        return await _userRepository.ChangeName(id, name, surname);
+    }
+
     public async Task<bool> ChangeDescription(int id, string description)
     {
         return await _userRepository.ChangeDescription(id, description);
     }
 
-    public async Task<bool> ChangeName(int id, string name, string surname)
-    {
-            return await _userRepository.ChangeName(id, name, surname);
-    }
-
     public async Task<bool> ChangePassword(int id, string oldPassword, string newPassword)
     {
         var user = await _userRepository.GetUserCredsById(id);
-        if (user != null && _passwordHasher.VerifyPassword(oldPassword, user.PasswordHash, user.Salt))
-        {
-            byte[] salt;
-            var newHash = _passwordHasher.HashPassword(newPassword, out salt);    
-            await _userRepository.ChangePassword(id,newHash, salt);
-            return true;
-        }
-        return false;
+        if (
+            user is null
+            || !_passwordHasher.VerifyPassword(oldPassword, user.PasswordHash, user.Salt)
+        ) return false;
+
+        var newHash = _passwordHasher.HashPassword(newPassword, out byte[] salt);    
+        return await _userRepository.ChangePassword(id,newHash, salt);
     }
 
     public async Task<bool> ChekUser(string email)

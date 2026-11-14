@@ -8,6 +8,7 @@ using Cogni.Models;
 using Cogni.Contracts.Requests;
 using Cogni.Contracts.Responses;
 using Humanizer;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Cogni.Services
 {
@@ -94,7 +95,7 @@ namespace Cogni.Services
 
             if (request.ArticlePreviewFile != null)
             {
-                articlePreviewUrl = await _imageService.UploadImage(request.ArticlePreviewFile);
+                articlePreviewUrl = (await _imageService.UploadImage(request.ArticlePreviewFile)).Url;
             }
             var article = new Article
             {
@@ -110,7 +111,7 @@ namespace Cogni.Services
             {
                 foreach (var file in request.Files)
                 {
-                    var imageUrl = await _imageService.UploadImage(file);
+                    var imageUrl = (await _imageService.UploadImage(file)).Url;
                     article.ArticleImages.Add(new ArticleImage { ImageUrl = imageUrl });
                 }
             }
@@ -139,10 +140,15 @@ namespace Cogni.Services
                 throw new UnauthorizedAccessException("Вы не можете редактировать чужие статьи.");
             }
 
+            if (article.IdUser != userId)
+            {
+                throw new UnauthorizedAccessException();
+            }
+
             string? articlePreviewUrl = article.ArticlePreview;
             if (request.ArticlePreviewFile != null)
             {
-                articlePreviewUrl = await _imageService.UploadImage(request.ArticlePreviewFile);
+                articlePreviewUrl = (await _imageService.UploadImage(request.ArticlePreviewFile)).Url;
             }
 
             // Обновляем название и содержимое статьи
@@ -161,7 +167,7 @@ namespace Cogni.Services
             {
                 foreach (var file in request.Files)
                 {
-                    var imageUrl = await _imageService.UploadImage(file);
+                    var imageUrl = (await _imageService.UploadImage(file)).Url;
                     imageUrls.Add(imageUrl);
                     article.ArticleImages.Add(new ArticleImageModel { ImageUrl = imageUrl });
                 }

@@ -89,33 +89,31 @@ public class UserRepository : IUserRepository
         return userModel.ToPublic();
     }
 
-    public async Task ChangeAvatar(int id, string picLink)
+    public async Task<bool> ChangeAvatar(int id, string picLink)
     {
         var user = await _context.Users
             .Include(u => u.Avatars)
-            .FirstOrDefaultAsync(u => u.Id== id);
+            .FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null) return false;
 
         var avatar = user.Avatars.FirstOrDefault(r => r.IsActive == true);
-        if (avatar != null)
-        {
-            avatar.IsActive = false;
-        }
+        if (avatar != null) avatar.IsActive = false;
 
-        user.Avatars.Add(new Avatar 
-        { 
+        user.Avatars.Add(new Avatar  { 
             AvatarUrl = picLink,
-            UserId=id,
-            IsActive=true,
+            UserId = id,
+            IsActive = true,
             DateAdded = DateTime.Now,
         });
 
         await _context.SaveChangesAsync();  
+        return true;
     }
 
     public async Task<string?> ChangeBanner(int id, string picLink)
     {
         var user = await _context.Users.FindAsync(id);
-        if (user == null) return null;
+        if (user is null) return null;
 
         user.BannerImage = picLink;
         await _context.SaveChangesAsync();
@@ -135,42 +133,34 @@ public class UserRepository : IUserRepository
     public async Task<bool> ChangeName(int id, string name, string surname)
     {
         var user = await _context.Users.FindAsync(id);
+        if (user is null) return false;
+
         user.Name = name;
         user.Surname = surname;
         await _context.SaveChangesAsync();
-        if(user.Name == name && user.Surname == surname)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    public async Task ChangePassword(int id, string PasHash, byte[] salt)
-    {
-        var user = await _context.Users.FindAsync(id);
-        user.Salt = salt;
-        user.PasswordHash = PasHash;
-        await _context.SaveChangesAsync();
+        return true;
     }
 
     public async Task<bool> ChangeDescription(int id, string description)
     {
         var user = await _context.Users.FindAsync(id);
+        if (user is null) return false;
+
         user.Description = description;
         await _context.SaveChangesAsync();
-        if (user.Description == description)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return true;
     }
 
+    public async Task<bool> ChangePassword(int id, string PasHash, byte[] salt)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user is null) return false;
+
+        user.Salt = salt;
+        user.PasswordHash = PasHash;
+        await _context.SaveChangesAsync();
+        return true;
+    }
     
     public async Task<string?> GetUserRole(int id)
     {
@@ -184,37 +174,22 @@ public class UserRepository : IUserRepository
 
     public async Task<List<FriendDto>> GetRandomUsers(int userId, int startsFrom, int limit)
     {
-        var users = _context.Users
+        var users = await _context.Users
+            .Where(u => u.Id != userId)
             .OrderBy(u => u.Id)
             .Skip(startsFrom)
             .Take(limit)
-            .Where(u => u.Id != userId)
-            .Select(u => new
-            {
-                u.Id,
-                u.Surname,
-                u.Name,
-                u.IdMbtiType,
-                Avatar = u.Avatars
-                .Where(a => a.IsActive == true)
-                .Select(u =>  u.AvatarUrl)
-                .FirstOrDefault()
-            })
-            .ToList();
-
-        List<FriendDto> result = new List<FriendDto>();
-        foreach(var u in users)
-        {
-            result.Add(new FriendDto
-            {
+            .Select(u => new FriendDto {
                 Id = u.Id,
-                Name = u.Name,
                 Surname = u.Surname,
-                PicUrl = u.Avatar,
-                Mbti = u.IdMbtiType
-            });
-        } 
-        return result;
+                Name = u.Name,
+                Mbti = u.IdMbtiType,
+                PicUrl = u.Avatars
+                    .Where(a => a.IsActive == true)
+                    .Select(u => u.AvatarUrl)
+                    .FirstOrDefault()
+            }).ToListAsync();
+        return users;
     }
 
     public async Task<List<FriendDto>> SearchUserByNameAndType(int userId, string NameSurname, int mbtiType)

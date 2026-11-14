@@ -14,6 +14,8 @@ using Minio;
 using RabbitMQ.Client;
 using StackExchange.Redis;
 using ChatService.CustomSwaggerGen;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,10 +35,38 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
 {
     opt.SwaggerDoc("v1", new OpenApiInfo { Title = "ChatApi", Version = "v1" });
+
     opt.DocumentFilter<CustomSigRDocsGen>();
+
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     opt.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+
     opt.AddSignalRSwaggerGen();
+
+    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "bearer"
+    });
+
+    opt.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 // DEV-ONLY
@@ -90,6 +120,26 @@ builder.Services.AddTransient<IRedisRepository, RedisRepository>();
 builder.Services.AddHostedService<RabbitMqConsumerService>();
 builder.Services.AddControllers();
 
+builder.Services.AddAuthentication(x =>
+{
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidIssuer = builder.Configuration["Token:Issuer"],
+            ValidAudience = builder.Configuration["Token:Audience"],
+            ClockSkew = TimeSpan.Zero,
+            ValidateAudience = true,
+            ValidateIssuer = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(builder.Configuration["Token:Key"]),
+            ValidateLifetime = true
+        };
+    });
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -114,10 +164,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => {
         c.InjectJavascript("/Swagger/inject.js");
     });
-    app.UseCors("DEV-CHATS-AllowFrontend");
 }
+app.UseCors("DEV-CHATS-AllowFrontend");
 
 app.UseMiddleware<TokenExceptionHandlingMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapHub<ChatHubController>("chat/hub");
 

@@ -12,7 +12,7 @@ public interface IUserService
     Task<AuthedUserModel?> Login(string email, string password);
     Task<PublicUserModel?> GetPublicUser(int id); //получение всех данных для страницы профиля
     Task SetMbtiType(int userId, string mbtiType);
-    Task<string> ChangeAvatar(int id, IFormFile picture);//изменить автарарку
+    Task<string?> ChangeAvatar(int id, IFormFile picture);//изменить автарарку
     Task<string?> ChangeBanner(int id, IFormFile picture);//изменить баннер на странице пользователя
     Task<bool> RemoveBanner(int id); // удалить баннер пользователя
     Task<bool> ChangeName(int id, string name, string surname);//изменить имя

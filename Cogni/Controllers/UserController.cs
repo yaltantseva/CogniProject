@@ -262,10 +262,7 @@ namespace Cogni.Controllers
         [Authorize]
         public async Task<ActionResult<List<FriendDto>>> GetRandomUsers(GetRandomUsersRequest request)
         {
-            if (User.GetUserId() is not int id)
-            {
-                return Unauthorized();
-            }
+            if (User.GetUserId() is not int id) return Unauthorized();
             return await _userService.GetRandomUsers(id, request.startsFrom, request.limit);
         }
 
