@@ -8,6 +8,7 @@ using Cogni.Models;
 using Cogni.Contracts.Requests;
 using Cogni.Contracts.Responses;
 using Humanizer;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Cogni.Services
 {
@@ -120,7 +121,7 @@ namespace Cogni.Services
 
 
 
-        public async Task<ArticleModel> UpdateArticleAsync(int id, ArticleUpdateRequest request, int userId)
+        public async Task<ArticleModel>UpdateArticleAsync(int id, ArticleUpdateRequest request, int userId)
         {
             var article = await _articleRepository.GetById(id);
 
@@ -128,6 +129,11 @@ namespace Cogni.Services
             if (article == null)
             {
                 throw new Exception("Статья не найдена.");
+            }
+
+            if (article.IdUser != userId)
+            {
+                throw new UnauthorizedAccessException();
             }
 
             string? articlePreviewUrl = article.ArticlePreview;

@@ -138,6 +138,10 @@ namespace Cogni.Controllers
             {
                 return BadRequest("Неподдерживаемый формат изображения");
             }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden);
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, "Произошла ошибка при изменении статьи");
@@ -157,11 +161,32 @@ namespace Cogni.Controllers
         /// <summary>
         /// Удаление статьи
         /// </summary>
+
         [Microsoft.AspNetCore.Mvc.HttpDelete]
         [Authorize]
         public async Task<ActionResult> DeleteArticle(int id)
         {
+            if (User.GetUserId() is not int userId)
+            {
+                return Unauthorized();
+            }
+
+            var article = await _articleService.GetArticleByIdAsync(id);
+
+            if (article == null)
+            {
+                return NotFound();
+            }
+
+            bool isAdmin = User.IsInRole("Admin");
+
+            if (article.IdUser != userId && !isAdmin)
+            {
+                return Forbid();
+            }
+
             await _articleService.DeleteArticleAsync(id);
+
             return NoContent();
         }
     }
