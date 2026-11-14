@@ -29,41 +29,45 @@ namespace Cogni.Services
 
         public async Task<List<ArticlePreviewResponse>> GetArticlesPreviewesAsync()
         {
-            var articles = await _articleRepository.GetAll();
+            // Получаем статьи сразу с авторами и их MBTI
+            var articles = await _articleRepository.GetAllWithAuthors();
 
             List<ArticlePreviewResponse> articlePreviewResponses = new List<ArticlePreviewResponse>();
 
             foreach (var article in articles)
             {
-                if (article == null)
+                if (article == null || article.IdUserNavigation == null)
                 {
-                    continue;
+                    continue; // Пропускаем, если статья пустая или автор не найден
                 }
 
-                var user = await _userService.GetPublicUser(article.IdUser);
-                if (user == null)
-                {
-                    continue;
-                }
+                var user = article.IdUserNavigation;
+                var avatarUrl = user.Avatars?.FirstOrDefault(a => a.IsActive == true)?.AvatarUrl;
 
                 // Вычисление времени с момента публикации
                 var timeSincePublication = article.Created.HasValue
                     ? article.Created.Value.ToLocalTime().Humanize(culture: new System.Globalization.CultureInfo("ru-RU"))
                     : "Неизвестно";
+
                 var r = new ArticlePreviewResponse(
                     article.Id,
                     article.IdUser,
                     article.ArticlePreview,
-                    user.Image,
-                    user.Name,
+                    avatarUrl,
+                    user.Name, // Имя автора
                     article.ReadsNumber ?? 0,
                     timeSincePublication,
-                    user.TypeMbti,
+                    
+                    // Достаем MBTI из навигации. Если её нет, то null
+                    user.IdMbtiTypeNavigation != null ? user.IdMbtiTypeNavigation.NameOfType : null, 
+                    
                     article.ArticleName,
                     article.Annotation
                 );
+                
                 articlePreviewResponses.Add(r);
             }
+            
             return articlePreviewResponses;
         }
 
@@ -121,14 +125,19 @@ namespace Cogni.Services
 
 
 
-        public async Task<ArticleModel>UpdateArticleAsync(int id, ArticleUpdateRequest request, int userId)
+        public async Task<ArticleModel> UpdateArticleAsync(int id, ArticleUpdateRequest request, int userId, bool isAdmin)
         {
             var article = await _articleRepository.GetById(id);
 
-
             if (article == null)
             {
-                throw new Exception("Статья не найдена.");
+                throw new ArgumentException("Статья не найдена."); // Заменили Exception на ArgumentException для 404
+            }
+
+            // Проверка прав: редактировать может только автор или администратор
+            if (article.IdUser != userId && !isAdmin)
+            {
+                throw new UnauthorizedAccessException("Вы не можете редактировать чужие статьи.");
             }
 
             if (article.IdUser != userId)
@@ -145,7 +154,9 @@ namespace Cogni.Services
             // Обновляем название и содержимое статьи
             article.ArticleName = request.ArticleName;
             article.ArticleBody = request.ArticleBody;
-            article.Annotation = request.Annotation;
+            article.Annotation = !string.IsNullOrWhiteSpace(request.Annotation)
+                ? request.Annotation
+                : (!string.IsNullOrWhiteSpace(article.Annotation) ? article.Annotation : (request.ArticleBody.Length > 150 ? request.ArticleBody[..150] : request.ArticleBody));
             article.ArticlePreview = articlePreviewUrl;
 
             // Получаем существующие URL изображений
@@ -185,8 +196,23 @@ namespace Cogni.Services
             await _articleRepository.UpdateReadsNumber(article.Id, article.ReadsNumber.Value); // Нужно реализовать в репозитории
         }
 
-        public async Task DeleteArticleAsync(int id)
+        public async Task DeleteArticleAsync(int id, int currentUserId, bool isAdmin)
         {
+            // 1. Загружаем статью, чтобы узнать её автора
+            var article = await _articleRepository.GetById(id);
+
+            if (article == null)
+            {
+                throw new ArgumentException("Статья не найдена.");
+            }
+
+            // 2. Проверяем права: если это не автор и не админ — запрещаем
+            if (article.IdUser != currentUserId && !isAdmin)
+            {
+                throw new UnauthorizedAccessException("Вы не можете удалять чужие статьи.");
+            }
+
+            // 3. Если всё ок — удаляем
             await _articleRepository.Delete(id);
         }
         private ArticleModel ToModel(ArticleModel article)

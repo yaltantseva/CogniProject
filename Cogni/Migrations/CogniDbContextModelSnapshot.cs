@@ -36,8 +36,7 @@ namespace Cogni.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ArticleBody")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)")
+                        .HasColumnType("text")
                         .HasColumnName("article_body");
 
                     b.Property<string>("ArticleName")

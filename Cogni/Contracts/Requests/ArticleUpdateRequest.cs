@@ -5,10 +5,10 @@
         int IdArticle,
         string ArticleName,
         string ArticleBody,
-        List<string> ImageUrls,
-        int IdUser,
+        List<string>? ImageUrls,
+        int? IdUser,
         IFormFileCollection? Files,
-        string Annotation,
+        string? Annotation,
         IFormFile? ArticlePreviewFile
     );
 }

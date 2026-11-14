@@ -78,7 +78,6 @@ public partial class CogniDbContext : DbContext
             .HasColumnName("id_article")
             .ValueGeneratedOnAdd();
             entity.Property(e => e.ArticleBody)
-                .HasMaxLength(1024)
                 .HasColumnName("article_body");
             entity.Property(e => e.ArticleName)
                 .HasMaxLength(128)

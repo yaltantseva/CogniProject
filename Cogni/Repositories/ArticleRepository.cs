@@ -43,6 +43,15 @@ namespace Cogni.Database.Repositories
             return article != null ? ToModel(article) : null;
         }
 
+        public async Task<List<Article>> GetAllWithAuthors()
+        {
+            return await _context.Articles
+                .Include(a => a.IdUserNavigation)
+                    .ThenInclude(u => u.IdMbtiTypeNavigation) // Подтягиваем название MBTI
+                .Include(a => a.IdUserNavigation)
+                    .ThenInclude(u => u.Avatars) // Подтягиваем аватары автора
+                .ToListAsync();
+        }
         private ArticleModel ToModel(Article article)
         {
             return new ArticleModel
@@ -67,7 +76,11 @@ namespace Cogni.Database.Repositories
 
         public async Task Update(int id, string articleName, string articleBody, List<string> imageUrls, string annotation, string? articlePreview)
         {
-            var article = await _context.Articles.FindAsync(id);
+            // Загружаем статью ВМЕСТЕ с картинками, чтобы Clear() не вызвал NullReferenceException
+            var article = await _context.Articles
+                .Include(a => a.ArticleImages)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
             if (article != null)
             {
                 article.ArticleName = articleName;
@@ -75,6 +88,7 @@ namespace Cogni.Database.Repositories
                 article.Annotation = annotation;
                 article.ArticlePreview = articlePreview;
 
+                // Очищаем старые связи и добавляем новые
                 article.ArticleImages.Clear();
                 foreach (var imageUrl in imageUrls)
                 {

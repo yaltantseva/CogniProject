@@ -121,9 +121,11 @@ namespace Cogni.Controllers
                 return Unauthorized();
             }
 
+            bool isAdmin = User.IsInRole("Admin");
+
             try
             {
-                var updatedArticle = await _articleService.UpdateArticleAsync(request.IdArticle, request, userId);
+                var updatedArticle = await _articleService.UpdateArticleAsync(request.IdArticle, request, userId, isAdmin);
 
                 var imageUrls = updatedArticle.ArticleImages.Select(i => i.ImageUrl).ToList();
                 var articleResponse = new ArticleResponse(updatedArticle.Id, updatedArticle.ArticleName, updatedArticle.ArticleBody, imageUrls, updatedArticle.IdUser, updatedArticle.Annotation, updatedArticle.Created, updatedArticle.ReadsNumber, updatedArticle.ArticlePreview);
@@ -132,7 +134,11 @@ namespace Cogni.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return NotFound(ex.Message); // Статья не найдена (404)
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ex.Message); // Нет прав на редактирование (403)
             }
             catch (SixLabors.ImageSharp.UnknownImageFormatException ex)
             {
@@ -171,23 +177,22 @@ namespace Cogni.Controllers
                 return Unauthorized();
             }
 
-            var article = await _articleService.GetArticleByIdAsync(id);
-
-            if (article == null)
-            {
-                return NotFound();
-            }
-
+            // Проверяем, является ли он админом
             bool isAdmin = User.IsInRole("Admin");
 
-            if (article.IdUser != userId && !isAdmin)
+            try
             {
-                return Forbid();
+                await _articleService.DeleteArticleAsync(id, userId, isAdmin);
+                return NoContent();
             }
-
-            await _articleService.DeleteArticleAsync(id);
-
-            return NoContent();
+            catch (ArgumentException ex)
+            {
+                return NotFound(ex.Message); // Статья не найдена (404)
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ex.Message); // Нет прав (403 Forbid)
+            }
         }
     }
 }
