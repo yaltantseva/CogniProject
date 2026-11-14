@@ -48,6 +48,8 @@ namespace Cogni.Database.Repositories
             return await _context.Articles
                 .Include(a => a.IdUserNavigation)
                     .ThenInclude(u => u.IdMbtiTypeNavigation) // Подтягиваем название MBTI
+                .Include(a => a.IdUserNavigation)
+                    .ThenInclude(u => u.Avatars) // Подтягиваем аватары автора
                 .ToListAsync();
         }
         private ArticleModel ToModel(Article article)

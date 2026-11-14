@@ -9,7 +9,7 @@ public interface IArticleService
     Task<ArticleModel> GetArticleByIdAsync(int id);
     Task<Article> CreateArticleAsync(CreateArticleRequest request, int userId);
 
-    Task<ArticleModel> UpdateArticleAsync(int id, ArticleUpdateRequest request, int userId);
+    Task<ArticleModel> UpdateArticleAsync(int id, ArticleUpdateRequest request, int userId, bool isAdmin);
     Task IncrementArticleReadsAsync(int id);
     Task<List<ArticlePreviewResponse>> GetArticlesPreviewesAsync();
 

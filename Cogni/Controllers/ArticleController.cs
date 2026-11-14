@@ -121,9 +121,11 @@ namespace Cogni.Controllers
                 return Unauthorized();
             }
 
+            bool isAdmin = User.IsInRole("Admin");
+
             try
             {
-                var updatedArticle = await _articleService.UpdateArticleAsync(request.IdArticle, request, userId);
+                var updatedArticle = await _articleService.UpdateArticleAsync(request.IdArticle, request, userId, isAdmin);
 
                 var imageUrls = updatedArticle.ArticleImages.Select(i => i.ImageUrl).ToList();
                 var articleResponse = new ArticleResponse(updatedArticle.Id, updatedArticle.ArticleName, updatedArticle.ArticleBody, imageUrls, updatedArticle.IdUser, updatedArticle.Annotation, updatedArticle.Created, updatedArticle.ReadsNumber, updatedArticle.ArticlePreview);

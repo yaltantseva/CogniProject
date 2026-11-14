@@ -41,6 +41,7 @@ namespace Cogni.Services
                 }
 
                 var user = article.IdUserNavigation;
+                var avatarUrl = user.Avatars?.FirstOrDefault(a => a.IsActive == true)?.AvatarUrl;
 
                 // Вычисление времени с момента публикации
                 var timeSincePublication = article.Created.HasValue
@@ -51,7 +52,7 @@ namespace Cogni.Services
                     article.Id,
                     article.IdUser,
                     article.ArticlePreview,
-                    null, // Картинки в User нет, передаем null
+                    avatarUrl,
                     user.Name, // Имя автора
                     article.ReadsNumber ?? 0,
                     timeSincePublication,
@@ -123,7 +124,7 @@ namespace Cogni.Services
 
 
 
-        public async Task<ArticleModel> UpdateArticleAsync(int id, ArticleUpdateRequest request, int userId)
+        public async Task<ArticleModel> UpdateArticleAsync(int id, ArticleUpdateRequest request, int userId, bool isAdmin)
         {
             var article = await _articleRepository.GetById(id);
 
@@ -132,9 +133,8 @@ namespace Cogni.Services
                 throw new ArgumentException("Статья не найдена."); // Заменили Exception на ArgumentException для 404
             }
 
-            // ДОБАВЛЕНА ПРОВЕРКА: если это не автор и не админ
-            // (Проверку на админа мы сюда не передаем, но если нужно, можно добавить bool isAdmin)
-            if (article.IdUser != userId)
+            // Проверка прав: редактировать может только автор или администратор
+            if (article.IdUser != userId && !isAdmin)
             {
                 throw new UnauthorizedAccessException("Вы не можете редактировать чужие статьи.");
             }
@@ -148,7 +148,9 @@ namespace Cogni.Services
             // Обновляем название и содержимое статьи
             article.ArticleName = request.ArticleName;
             article.ArticleBody = request.ArticleBody;
-            article.Annotation = request.Annotation;
+            article.Annotation = !string.IsNullOrWhiteSpace(request.Annotation)
+                ? request.Annotation
+                : (!string.IsNullOrWhiteSpace(article.Annotation) ? article.Annotation : (request.ArticleBody.Length > 150 ? request.ArticleBody[..150] : request.ArticleBody));
             article.ArticlePreview = articlePreviewUrl;
 
             // Получаем существующие URL изображений
