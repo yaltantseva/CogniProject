@@ -635,13 +635,13 @@ namespace Cogni.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(45)
-                        .HasColumnType("character varying(45)")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
                         .HasColumnName("description");
 
                     b.Property<string>("Email")
-                        .HasMaxLength(45)
-                        .HasColumnType("character varying(45)")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("email");
 
                     b.Property<int>("IdMbtiType")
