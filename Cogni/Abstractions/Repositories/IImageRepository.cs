@@ -5,7 +5,8 @@ namespace Cogni.Abstractions.Repositories
 {
     public interface IImageRepository
     {
-        Task<String> UploadImage(IFormFile file); //добавляет изображение на сервер и возвращает URL с ID
+        // добавляет изображение на сервер и возвращает (URL, ID)
+        Task<(string Url, string Id)> UploadImage(IFormFile file);
         Task DeleteImage(string fileId); //удаляет изображение с сервера
     }
 }

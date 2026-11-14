@@ -13,8 +13,8 @@ public class ImageService : IImageService
         _imageRepository = imageRepository;
         _imageConverterService = imageConverter;
     }
-    // Добавляет изображение на сервер и возвращает URL с ID
-    public async Task<String> UploadImage(IFormFile inputFile)
+    
+    public async Task<(string Url, string Id)> UploadImage(IFormFile inputFile)
     {
         var file = _imageConverterService.ConvertAndResizeImage(inputFile);
 
@@ -26,8 +26,8 @@ public class ImageService : IImageService
         {
             throw new InvalidDataException("Разрешение изображения должно быть между 64x64 и 1024x1024");
         }
-        var imageUrl = await _imageRepository.UploadImage(file);
-        return imageUrl;
+        
+        return await _imageRepository.UploadImage(file);
     }
 
     // Удаляет изображение с сервера по ID

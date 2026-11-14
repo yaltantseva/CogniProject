@@ -54,7 +54,6 @@ namespace Cogni.Controllers
         public async Task<ActionResult<List<(int id, string picUrl, string mbti)>>> GetUserFriends(int id)
         {
             var list = await _friendService.GetUserFriends(id);
-
             return Ok(list);
         }
 
@@ -64,14 +63,9 @@ namespace Cogni.Controllers
         {
             try
             {
-                if (User.GetUserId() is not int userId)
-                {
-                    return Unauthorized();
-                }
-                if (userId == friendId)
-                {
-                    return BadRequest("Нельзя подписаться на самого себя");
-                }
+                if (User.GetUserId() is not int userId) return Unauthorized();
+                if (userId == friendId) return BadRequest("Нельзя подписаться на самого себя");
+
                 await _friendService.Subscribe(userId, friendId);
                 return Ok();
             }
@@ -81,15 +75,14 @@ namespace Cogni.Controllers
                 {
                     case "23505": // Unique constraint violation (duplicate entry)
                         return Conflict("Вы уже подписаны на этого пользователя");
-                    
                     case "23503": // Foreign key violation (invalid reference)
                         return BadRequest("Пользователя с таким id не существует");
-
                     default:
                         return StatusCode(500, "Неизвестная ошибка");
                 }
             } catch (Exception e) {
-                return Unauthorized();
+                _logger.LogError(e, "FriendController.Subscribe(friendId={friendId}) exception", friendId);
+                return StatusCode(500, "Внутренняя ошибка сервера");
             }
         }
 
@@ -98,14 +91,13 @@ namespace Cogni.Controllers
         public async Task<ActionResult> Unsubscribe(int friendId)
         {
             try {
-                if (User.GetUserId() is not int userId)
-                {
-                    return Unauthorized();
-                }
+                if (User.GetUserId() is not int userId) return Unauthorized();
+
                 await _friendService.Unsubscribe(userId, friendId);
                 return Ok();
             } catch (Exception e) {
-                return Unauthorized();
+                _logger.LogError(e, "FriendController.Unsubscribe(friendId={friendId}) exception", friendId);
+                return StatusCode(500, "Внутренняя ошибка сервера");
             }
         }
 
@@ -114,13 +106,12 @@ namespace Cogni.Controllers
         public async Task<ActionResult> CheckSubscribe(int friendId)
         {
             try {
-                if (User.GetUserId() is not int userId)
-                {
-                    return Unauthorized();
-                }
+                if (User.GetUserId() is not int userId) return Unauthorized();
+
                 return Ok(await _friendService.CheckSubscribe(userId, friendId));
             } catch (Exception e) {
-                return Unauthorized();
+                _logger.LogError(e, "FriendController.CheckSubscribe(friendId={friendId}) exception", friendId);
+                return StatusCode(500, "Внутренняя ошибка сервера");
             }
         }
     }
