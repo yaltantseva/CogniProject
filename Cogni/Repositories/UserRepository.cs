@@ -194,7 +194,7 @@ public class UserRepository : IUserRepository
 
     public async Task<List<FriendDto>> SearchUserByNameAndType(int userId, string NameSurname, int mbtiType)
     {
-        var users = _context.Users
+        var users = await _context.Users
             .OrderBy(u => u.Id)
             .Where(u => u.Id != userId && // Исключаем текущего пользователя
             (string.IsNullOrEmpty(NameSurname) || // Если NameSurname не указан, игнорируем это условие
@@ -211,7 +211,7 @@ public class UserRepository : IUserRepository
                 .Select(u => u.AvatarUrl)
                 .FirstOrDefault()
             })
-            .ToList();
+            .ToListAsync();
 
         List<FriendDto> result = new List<FriendDto>();
         foreach (var u in users)

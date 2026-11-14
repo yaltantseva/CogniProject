@@ -113,7 +113,7 @@ https://76qb94nxry.ucarecd.net/00000000-0000-0000-0000-000000000000
 | **SignalR Chat Hub** | `ws://localhost:5108/chat` | WebSocket/SignalR хаб общения | JWT Bearer |
 | **Chat Dev Frontend** | [http://localhost:5173](http://localhost:5173) | Vite SPA для тестирования чата | — |
 | **RabbitMQ Management UI**| [http://localhost:15672](http://localhost:15672) | Панель управления очередями RabbitMQ | `user` / `password` |
-| **MinIO Console / S3** | [http://localhost:9000](http://localhost:9000) (API), `:9090` (UI) | S3-совместимое файловое хранилище | `admin` / `password123` |
+| **MinIO Console / S3** | [http://localhost:9000](http://localhost:9000) (API), [http://localhost:9001](http://localhost:9001) (UI) | S3-совместимое файловое хранилище | `admin` / `password123` |
 | **PostgreSQL** | `localhost:5004` | База данных Cogni (`cogni`) | `user` / `password` |
 | **Redis** | `localhost:5002` | In-memory хранилище сессий и кеша | `user` / `password` |
 | **HAProxy (Production)** | `http://localhost:9100` | Балансировщик нагрузки и reverse proxy | — |

@@ -140,11 +140,6 @@ namespace Cogni.Services
                 throw new UnauthorizedAccessException("Вы не можете редактировать чужие статьи.");
             }
 
-            if (article.IdUser != userId)
-            {
-                throw new UnauthorizedAccessException();
-            }
-
             string? articlePreviewUrl = article.ArticlePreview;
             if (request.ArticlePreviewFile != null)
             {
@@ -174,7 +169,7 @@ namespace Cogni.Services
             }
 
             // Обновляем статью в репозитории
-            await _articleRepository.Update(article.Id, article.ArticleName, article.ArticleBody, imageUrls, request.Annotation, article.ArticlePreview);
+            await _articleRepository.Update(article.Id, article.ArticleName, article.ArticleBody, imageUrls, article.Annotation, article.ArticlePreview);
 
             // Возвращаем обновленную статью
             return article;

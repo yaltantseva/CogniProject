@@ -140,15 +140,11 @@ namespace Cogni.Controllers
             {
                 return StatusCode(403, ex.Message); // Нет прав на редактирование (403)
             }
-            catch (SixLabors.ImageSharp.UnknownImageFormatException ex)
+            catch (SixLabors.ImageSharp.UnknownImageFormatException)
             {
                 return BadRequest("Неподдерживаемый формат изображения");
             }
-            catch (UnauthorizedAccessException)
-            {
-                return StatusCode(StatusCodes.Status403Forbidden);
-            }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, "Произошла ошибка при изменении статьи");
             }

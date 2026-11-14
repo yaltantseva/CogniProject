@@ -276,26 +276,32 @@ public class ChatRepository : IChatRepository
     }
 
     public async Task ReadMessages(string chatId, string userId, int lastMessageId) {
+        if (!Guid.TryParse(chatId, out var chatGuid)) return;
         var chat = await _dbContext.Chats
             .Include(c => c.Members)
-            .FirstOrDefaultAsync(c => c.Id.ToString() == chatId);
+            .FirstOrDefaultAsync(c => c.Id == chatGuid);
         if (chat == null) return; 
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
+        if (!int.TryParse(userId, out var userIntId)) return;
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userIntId);
         if (user == null) return; 
         if (!chat.Members.Any(m => m.UserId == user.Id)) return;
         var last = lastMessageId;
         if (lastMessageId == -1) {
-            last = await _dbContext.Messages.Where(m => m.ChatId.ToString() == chatId && ((m.SenderId != user.Id) || m.IsFunctional)).MaxAsync(m => m.MessageId);
+            last = await _dbContext.Messages
+                .Where(m => m.ChatId == chatGuid && ((m.SenderId != user.Id) || m.IsFunctional))
+                .OrderByDescending(m => m.MessageId)
+                .Select(m => (int?)m.MessageId)
+                .FirstOrDefaultAsync() ?? 0;
         }
         var existingStatus = await _dbContext.MessageStatus
-            .FirstOrDefaultAsync(ms => ms.UserId == user.Id && ms.ChatId == Guid.Parse(chatId));
+            .FirstOrDefaultAsync(ms => ms.UserId == user.Id && ms.ChatId == chatGuid);
         if (existingStatus != null){existingStatus.LastReaden = last;}
         else{
-            _dbContext.MessageStatus.Add(new MessageStatus { LastReaden = last, UserId = user.Id, ChatId = Guid.Parse(chatId) });
+            _dbContext.MessageStatus.Add(new MessageStatus { LastReaden = last, UserId = user.Id, ChatId = chatGuid });
         }
         await _dbContext.SaveChangesAsync();
         // TODO: optimize
-        var unreadCount = await _dbContext.Messages.Where(m => m.ChatId.ToString() == chatId && ((m.SenderId != user.Id) || m.IsFunctional) && m.MessageId > last).CountAsync();
+        var unreadCount = await _dbContext.Messages.Where(m => m.ChatId == chatGuid && ((m.SenderId != user.Id) || m.IsFunctional) && m.MessageId > last).CountAsync();
         await SendEvent(new MessagesReadenEvent {
             chatId = chatId,
             unreadCount = unreadCount,

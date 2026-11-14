@@ -29,16 +29,20 @@ public class TokenController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<TokenResponse>> Refresh()
     {
-        string refreshToken = Request.Headers["Refresh-token"];
-        var userIdStr = _redisDb.StringGet($"refresh_token:{refreshToken}");
-        await _redisDb.KeyDeleteAsync($"refresh_token:{refreshToken}");
+        string? refreshToken = Request.Headers["Refresh-token"];
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return Unauthorized("Refresh token is missing");
+        }
+
+        var userIdStr = await _redisDb.StringGetDeleteAsync($"refresh_token:{refreshToken}");
         if (userIdStr.IsNullOrEmpty) {return Unauthorized("Refresh token is invalid or expired");}
-        var userId = int.Parse(userIdStr);
+        var userId = int.Parse(userIdStr!);
         var role = await _userService.GetUserRole(userId);
         if (role == null) {return Unauthorized("Can't find role! Refresh token is invalid?");} // Возможно только если пользователь удален
         var newAToken = _tokenService.GenerateAccessToken(new AccessTokenPayload(userId, role));
         var newRefreshToken = Guid.NewGuid().ToString();
-        _redisDb.StringSet($"refresh_token:{newRefreshToken}", userId.ToString(), 
+        await _redisDb.StringSetAsync($"refresh_token:{newRefreshToken}", userId.ToString(), 
                             TimeSpan.FromMinutes(AuthOptions.RefreshTokenExpirationTime));
         return Ok(new TokenResponse(
             newAToken,
@@ -46,6 +50,22 @@ public class TokenController : ControllerBase
             _tokenService.GetAccessTokenExpireTime(),
             _tokenService.GetRefreshTokenExpireTime()
         ));
+    }
+
+    /// <summary>
+    /// Завершает сессию и отзывает refresh-токен
+    /// </summary>
+    /// <remarks>Refresh-токен должен быть отправлен в заголовке "Refresh-token"</remarks>
+    /// <response code="200">Сессия успешно завершена.</response>
+    [HttpPost]
+    public async Task<ActionResult> Logout()
+    {
+        string? refreshToken = Request.Headers["Refresh-token"];
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+        {
+            await _redisDb.KeyDeleteAsync($"refresh_token:{refreshToken}");
+        }
+        return Ok();
     }
 }
 
