@@ -144,10 +144,11 @@ namespace Cogni.Controllers
             {
                 return BadRequest("Неподдерживаемый формат изображения");
             }
-            catch (UnauthorizedAccessException)
-            {
-                return StatusCode(StatusCodes.Status403Forbidden);
-            }
+            // TODO(Track-12): дубль catch, вызывает CS0160. Вернуть/починить отдельно.
+            // catch (UnauthorizedAccessException)
+            // {
+            //     return StatusCode(StatusCodes.Status403Forbidden);
+            // }
             catch (Exception ex)
             {
                 return StatusCode(500, "Произошла ошибка при изменении статьи");
