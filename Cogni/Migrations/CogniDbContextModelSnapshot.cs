@@ -255,6 +255,39 @@ namespace Cogni.Migrations
                     b.ToTable("likes", (string)null);
                 });
 
+            modelBuilder.Entity("Cogni.Database.Entities.MbtiCompatibility", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompatibilityPercentage")
+                        .HasColumnType("integer")
+                        .HasColumnName("compatibility_percentage");
+
+                    b.Property<int>("SourceMbtiTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("source_mbti_type_id");
+
+                    b.Property<int>("TargetMbtiTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("target_mbti_type_id");
+
+                    b.HasKey("Id")
+                        .HasName("mbti_compatibility_pkey");
+
+                    b.HasIndex("TargetMbtiTypeId");
+
+                    b.HasIndex("SourceMbtiTypeId", "TargetMbtiTypeId")
+                        .IsUnique()
+                        .HasDatabaseName("mbti_compatibility_source_target_key");
+
+                    b.ToTable("mbti_compatibility", (string)null);
+                });
+
             modelBuilder.Entity("Cogni.Database.Entities.MbtiQuestion", b =>
                 {
                     b.Property<int>("Id")
@@ -832,6 +865,27 @@ namespace Cogni.Migrations
                     b.Navigation("Post");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Cogni.Database.Entities.MbtiCompatibility", b =>
+                {
+                    b.HasOne("Cogni.Database.Entities.MbtiType", "SourceMbtiType")
+                        .WithMany()
+                        .HasForeignKey("SourceMbtiTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("mbti_compatibility_source_fkey");
+
+                    b.HasOne("Cogni.Database.Entities.MbtiType", "TargetMbtiType")
+                        .WithMany()
+                        .HasForeignKey("TargetMbtiTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("mbti_compatibility_target_fkey");
+
+                    b.Navigation("SourceMbtiType");
+
+                    b.Navigation("TargetMbtiType");
                 });
 
             modelBuilder.Entity("Cogni.Database.Entities.Message", b =>

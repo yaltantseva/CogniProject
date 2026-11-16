@@ -42,6 +42,8 @@ public partial class CogniDbContext : DbContext
 
     public virtual DbSet<MbtiType> MbtiTypes { get; set; }
 
+    public virtual DbSet<MbtiCompatibility> MbtiCompatibilities { get; set; }
+
     public virtual DbSet<Message> Messages { get; set; }
 
     public virtual DbSet<MessageStatus> MessageStatus { get; set; }
@@ -311,6 +313,41 @@ public partial class CogniDbContext : DbContext
                     new MbtiType{Id = 16, NameOfType ="ESTJ"},
                 }
                 );
+        });
+        modelBuilder.Entity<MbtiCompatibility>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("mbti_compatibility_pkey");
+
+            entity.ToTable("mbti_compatibility");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("id");
+
+            entity.Property(e => e.SourceMbtiTypeId)
+                .HasColumnName("source_mbti_type_id");
+
+            entity.Property(e => e.TargetMbtiTypeId)
+                .HasColumnName("target_mbti_type_id");
+
+            entity.Property(e => e.CompatibilityPercentage)
+                .HasColumnName("compatibility_percentage");
+
+            entity.HasIndex(e => new { e.SourceMbtiTypeId, e.TargetMbtiTypeId })
+                .IsUnique()
+                .HasDatabaseName("mbti_compatibility_source_target_key");
+
+            entity.HasOne(e => e.SourceMbtiType)
+                .WithMany()
+                .HasForeignKey(e => e.SourceMbtiTypeId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("mbti_compatibility_source_fkey");
+
+            entity.HasOne(e => e.TargetMbtiType)
+                .WithMany()
+                .HasForeignKey(e => e.TargetMbtiTypeId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("mbti_compatibility_target_fkey");
         });
         modelBuilder.Entity<Message>(e => {
             e.Property(m => m.MessageId).HasColumnName("message_id");
