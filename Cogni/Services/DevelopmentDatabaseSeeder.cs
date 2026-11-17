@@ -439,6 +439,48 @@ public static class DevelopmentDatabaseSeeder
     private const string ArticleImageUrl = "https://placehold.co/1200x800/png?text=Cogni+Article";
     private const string PostImageUrl = "https://placehold.co/1200x800/png?text=Cogni+Post";
 
+    // Порядок как в таблице (rows = source, cols = target)
+    private static readonly string[] CompatibilityTypeOrder =
+    {
+        "ENFJ","ENFP","ENTJ","ENTP","ESFJ","ESFP","ESTJ","ESTP",
+        "INFJ","INFP","INTJ","INTP","ISFJ","ISFP","ISTJ","ISTP"
+    };
+
+    private static readonly int[,] CompatibilityMatrix =
+    {
+        // ENFJ
+        { 86, 91, 42, 73, 64, 80, 22, 41, 74, 73, 16, 35, 30, 40, 18,  9 },
+        // ENFP
+        { 91, 97, 37, 85, 42, 93, 27, 76, 51, 73, 13, 36, 11, 49,  4, 14 },
+        // ENTJ
+        { 42, 37, 91, 81, 53, 51, 87, 74, 25, 13, 46, 47, 29,  6, 66, 41 },
+        // ENTP
+        { 73, 85, 81, 94, 32, 87, 70, 92, 11, 35, 22, 51,  5, 14, 11, 35 },
+        // ESFJ
+        { 64, 42, 53, 32, 94, 40, 77, 37, 74, 17, 32,  5, 79, 57, 71, 19 },
+        // ESFP
+        { 80, 93, 51, 87, 40, 70, 39, 75, 43, 58, 22, 39, 12, 58,  8, 26 },
+        // ESTJ
+        { 22, 27, 87, 70, 77, 39, 96, 78, 14,  3, 33, 22, 48, 22, 79, 55 },
+        // ESTP
+        { 41, 76, 74, 92, 37, 75, 78, 95,  5, 24, 17, 39, 12, 43, 20, 62 },
+        // INFJ
+        { 74, 51, 25, 11, 74, 43, 14,  5, 95, 85, 65, 50, 85, 58, 53, 23 },
+        // INFP
+        { 73, 73, 13, 35, 17, 58,  3, 24, 85, 97, 70, 84, 46, 78, 21, 49 },
+        // INTJ
+        { 16, 13, 46, 22, 32, 22, 33, 17, 65, 70, 86, 89, 79, 45, 85, 78 },
+        // INTP
+        { 35, 36, 47, 51,  5, 39, 22, 39, 50, 84, 89, 96, 38, 43, 51, 81 },
+        // ISFJ
+        { 30, 11, 29,  5, 79, 12, 48, 12, 85, 46, 79, 38, 95, 76, 93, 62 },
+        // ISFP
+        { 40, 49,  6, 14, 57, 58, 22, 43, 58, 78, 45, 43, 76, 97, 47, 76 },
+        // ISTJ
+        { 18,  4, 66, 11, 71,  8, 79, 20, 53, 21, 85, 51, 93, 47, 96, 78 },
+        // ISTP
+        {  9, 14, 41, 35, 19, 26, 55, 62, 23, 49, 78, 81, 62, 76, 78, 96 }
+    };
     public static async Task SeedAsync(CogniDbContext context)
     {
         await using var transaction = await context.Database.BeginTransactionAsync();
@@ -593,6 +635,7 @@ public static class DevelopmentDatabaseSeeder
         await AddLikeIfMissingAsync(context, secondUser.Id, firstPost.Id);
         for (var i = 0; i < additionalUsers.Length; i++)
             await AddLikeIfMissingAsync(context, additionalUsers[i].Id, i % 2 == 0 ? firstPost.Id : secondPost.Id);
+        await SeedMbtiCompatibilitiesAsync(context);
         await transaction.CommitAsync();
 
         Console.WriteLine("Development data is ready.");
@@ -798,6 +841,34 @@ public static class DevelopmentDatabaseSeeder
                 SELECT 1 FROM likes WHERE user_id = {userId} AND post_id = {postId}
             )
             """);
+    }
+
+    private static async Task SeedMbtiCompatibilitiesAsync(CogniDbContext context)
+    {
+        if (await context.MbtiCompatibilities.AnyAsync())
+            return;
+
+        // id берём из БД по имени — не полагаемся на порядок в HasData
+        var typeIds = await context.MbtiTypes
+            .ToDictionaryAsync(t => t.NameOfType, t => t.Id);
+
+        var rows = new List<MbtiCompatibility>(16 * 16);
+        for (var i = 0; i < CompatibilityTypeOrder.Length; i++)
+        {
+            for (var j = 0; j < CompatibilityTypeOrder.Length; j++)
+            {
+                rows.Add(new MbtiCompatibility
+                {
+                    SourceMbtiTypeId = typeIds[CompatibilityTypeOrder[i]],
+                    TargetMbtiTypeId = typeIds[CompatibilityTypeOrder[j]],
+                    CompatibilityPercentage = CompatibilityMatrix[i, j]
+                });
+            }
+        }
+
+        context.MbtiCompatibilities.AddRange(rows);
+        await context.SaveChangesAsync();
+        Console.WriteLine($"Seeded {rows.Count} MBTI compatibility rows.");
     }
 
     private static DateTime UtcTimestampWithoutTimeZone() =>
