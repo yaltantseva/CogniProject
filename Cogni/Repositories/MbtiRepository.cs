@@ -21,5 +21,22 @@ namespace Cogni.Database.Repositories
             }
             return type.Id;
         }
+        public async Task<int> GetCompatibilityAsync(int sourceTypeId, int targetTypeId)
+        {
+            var row = await _context.MbtiCompatibilities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c =>
+                    c.SourceMbtiTypeId == sourceTypeId &&
+                    c.TargetMbtiTypeId == targetTypeId);
+            return row?.CompatibilityPercentage ?? 0;
+        }
+
+        public async Task<int?> GetUserMbtiTypeIdAsync(int userId)
+        {
+            return await _context.Users
+                .Where(u => u.Id == userId)
+                .Select(u => (int?)u.IdMbtiType)
+                .FirstOrDefaultAsync();
+        }
     }
 }

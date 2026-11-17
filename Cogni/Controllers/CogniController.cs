@@ -1,6 +1,9 @@
 ﻿using Cogni.Abstractions.Repositories;
 using Cogni.Database.Context;
 using Cogni.Database.Entities;
+using Cogni.Abstractions.Services;
+using Cogni.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel;
@@ -14,10 +17,12 @@ namespace Cogni.Controllers
     {
         private readonly CogniDbContext _context;
         private readonly IUserRepository _userRepository;
-        public CogniController(CogniDbContext cogniDb, IUserRepository userRepository)
+        private readonly IMbtiService _mbtiService;
+        public CogniController(CogniDbContext cogniDb, IUserRepository userRepository, IMbtiService mbtiService)
         {
             _context = cogniDb;
             _userRepository = userRepository;
+            _mbtiService = mbtiService;
         }
         /// <summary>
         /// Контроллер для тестов бэка, все методы не для фронта
@@ -139,7 +144,7 @@ namespace Cogni.Controllers
         public async Task<ActionResult> CreateTag()
         {
             await _context.Tags.AddRangeAsync(new Tag[]
-             {
+            {
             new Tag {NameTag="Вязание"},
             new Tag {NameTag="Кино"},
             new Tag {NameTag="Аниме"},
@@ -147,7 +152,7 @@ namespace Cogni.Controllers
             new Tag {NameTag="Лыжный спорт"},
             new Tag {NameTag="Коньки"},
 
-             });
+            });
             await _context.SaveChangesAsync();
             return Ok();
         }
@@ -197,6 +202,45 @@ namespace Cogni.Controllers
             type.NameOfType= name;
             await _context.SaveChangesAsync();
         }
-        
+        /// <summary>
+        /// Расчёт сходимости по названиям типов MBTI.
+        /// Пример: GET /Mbti/GetCompatibility?typeA=INTJ&amp;typeB=ENFP
+        /// </summary>
+        [HttpGet("/Mbti/GetCompatibility")]
+        public async Task<ActionResult<int>> GetCompatibility([FromQuery] string typeA, [FromQuery] string typeB)
+        {
+            try
+            {
+                var result = await _mbtiService.GetCompatibilityAsync(typeA, typeB);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Расчёт сходимости с профилем конкретного пользователя.
+        /// Текущий пользователь берётся из JWT.
+        /// Пример: GET /Mbti/GetCompatibilityWithUser?targetUserId=123
+        /// </summary>
+        [Authorize]
+        [HttpGet("/Mbti/GetCompatibilityWithUser")]
+        public async Task<ActionResult<int>> GetCompatibilityWithUser([FromQuery] int targetUserId)
+        {
+            if (User.GetUserId() is not int currentUserId)
+                return Unauthorized();
+
+            try
+            {
+                var result = await _mbtiService.GetUserCompatibilityAsync(currentUserId, targetUserId);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
