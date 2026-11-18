@@ -140,14 +140,14 @@ public class UserService : IUserService
         await _userRepository.SetMbtiType(userId, typeId);
     }
     
-    public async Task<List<FriendDto>> GetRandomUsers(int userId, int startsFrom, int limit)
+    public async Task<List<FriendDto>> GetRandomUsers(int userId, int startsFrom, int limit, bool sortByCompatibility = false)
     {
-        return await _userRepository.GetRandomUsers(userId, startsFrom, limit);
+        return await _userRepository.GetRandomUsers(userId, startsFrom, limit, sortByCompatibility);
     }
 
-    public async Task<List<FriendDto>> SearchUserByNameAndType(int userId, string NameSurname, int mbtiType)
+    public async Task<List<FriendDto>> SearchUserByNameAndType(int userId, string NameSurname, int mbtiType, bool sortByCompatibility = false)
     {
-        return await _userRepository.SearchUserByNameAndType(userId, NameSurname, mbtiType);
+        return await _userRepository.SearchUserByNameAndType(userId, NameSurname, mbtiType, sortByCompatibility);
     }
 
     public async Task<List<PublicUserModel>> GetUsersByIds(List<int> userIds)

@@ -6,4 +6,5 @@ public class FriendDto
     public string Surname { get; set; }
     public string? PicUrl { get; set; }
     public int Mbti { get; set; }
+    public int? CompatibilityPercentage { get; set; }
 }

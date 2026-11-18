@@ -260,10 +260,10 @@ namespace Cogni.Controllers
         /// <remarks>startsFrom - скольких пользователей нужно пропустить(те которые уже были отправлены в предыдущих запросах), limit - скольких пользователей нужно отправить</remarks>
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult<List<FriendDto>>> GetRandomUsers(GetRandomUsersRequest request)
+        public async Task<ActionResult<List<FriendDto>>> GetRandomUsers(GetRandomUsersRequest request, [FromQuery] bool sortByCompatibility = false)
         {
             if (User.GetUserId() is not int id) return Unauthorized();
-            return await _userService.GetRandomUsers(id, request.startsFrom, request.limit);
+            return await _userService.GetRandomUsers(id, request.startsFrom, request.limit, sortByCompatibility);
         }
 
         /// <summary>
@@ -273,13 +273,13 @@ namespace Cogni.Controllers
         /// <remarks></remarks>
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult<List<FriendDto>>> SearchUserByNameAndMbti(SearchUserRequest request)
+        public async Task<ActionResult<List<FriendDto>>> SearchUserByNameAndMbti(SearchUserRequest request, [FromQuery] bool sortByCompatibility = false)
         {
             if (User.GetUserId() is not int id)
             {
                 return Unauthorized();
             }
-            return await _userService.SearchUserByNameAndType(id, request.Name, request.mbtiType);
+            return await _userService.SearchUserByNameAndType(id, request.Name, request.mbtiType, sortByCompatibility);
         }
 
         /// <summary>

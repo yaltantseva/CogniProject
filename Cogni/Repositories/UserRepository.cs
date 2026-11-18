@@ -172,60 +172,106 @@ public class UserRepository : IUserRepository
         return role;
     }
 
-    public async Task<List<FriendDto>> GetRandomUsers(int userId, int startsFrom, int limit)
+    public async Task<List<FriendDto>> GetRandomUsers(int userId, int startsFrom, int limit, bool sortByCompatibility = false)
     {
-        var users = await _context.Users
-            .Where(u => u.Id != userId)
-            .OrderBy(u => u.Id)
-            .Skip(startsFrom)
-            .Take(limit)
-            .Select(u => new FriendDto {
-                Id = u.Id,
-                Surname = u.Surname,
-                Name = u.Name,
-                Mbti = u.IdMbtiType,
-                PicUrl = u.Avatars
-                    .Where(a => a.IsActive == true)
-                    .Select(u => u.AvatarUrl)
-                    .FirstOrDefault()
-            }).ToListAsync();
-        return users;
-    }
+        // MBTI текущего пользователя (0 — если тип не задан)
+        var currentMbtiId = await _context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.IdMbtiType)
+            .FirstOrDefaultAsync();
 
-    public async Task<List<FriendDto>> SearchUserByNameAndType(int userId, string NameSurname, int mbtiType)
-    {
-        var users = _context.Users
-            .OrderBy(u => u.Id)
-            .Where(u => u.Id != userId && // Исключаем текущего пользователя
-            (string.IsNullOrEmpty(NameSurname) || // Если NameSurname не указан, игнорируем это условие
-            ((u.Name + " " + u.Surname).ToLower()).Contains((NameSurname.Trim()).ToLower())) && // Поиск по полному имени
-            (mbtiType == 0 || u.IdMbtiType == mbtiType))
+        var query = _context.Users
+            .Where(u => u.Id != userId)
             .Select(u => new
             {
                 u.Id,
-                u.Surname,
                 u.Name,
+                u.Surname,
                 u.IdMbtiType,
-                Avatar = u.Avatars
-                .Where(a => a.IsActive == true)
-                .Select(u => u.AvatarUrl)
-                .FirstOrDefault()
-            })
-            .ToList();
-
-        List<FriendDto> result = new List<FriendDto>();
-        foreach (var u in users)
-        {
-            result.Add(new FriendDto
-            {
-                Id = u.Id,
-                Name = u.Name,
-                Surname = u.Surname,
-                PicUrl = u.Avatar,
-                Mbti = u.IdMbtiType
+                PicUrl = u.Avatars
+                    .Where(a => a.IsActive == true)
+                    .Select(a => a.AvatarUrl)
+                    .FirstOrDefault(),
+                Compatibility = sortByCompatibility && currentMbtiId != 0
+                    ? _context.MbtiCompatibilities
+                        .Where(c => c.SourceMbtiTypeId == currentMbtiId && c.TargetMbtiTypeId == u.IdMbtiType)
+                        .Select(c => (int?)c.CompatibilityPercentage)
+                        .FirstOrDefault()
+                    : null
             });
+
+        if (sortByCompatibility && currentMbtiId != 0)
+        {
+            query = query
+                .OrderByDescending(x => x.Compatibility ?? 0)
+                .ThenBy(x => x.Id);
         }
-        return result;
+        else
+        {
+            query = query.OrderBy(x => x.Id);
+        }
+
+        return await query
+            .Skip(startsFrom)
+            .Take(limit)
+            .Select(x => new FriendDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Surname = x.Surname,
+                PicUrl = x.PicUrl,
+                Mbti = x.IdMbtiType,
+                CompatibilityPercentage = x.Compatibility
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<FriendDto>> SearchUserByNameAndType(int userId, string NameSurname, int mbtiType, bool sortByCompatibility = false)
+    {
+        var currentMbtiId = await _context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.IdMbtiType)
+            .FirstOrDefaultAsync();
+
+        var query = _context.Users
+            .Where(u => u.Id != userId
+                && (string.IsNullOrEmpty(NameSurname)
+                    || ((u.Name + " " + u.Surname).ToLower()).Contains(NameSurname.Trim().ToLower()))
+                && (mbtiType == 0 || u.IdMbtiType == mbtiType))
+            .Select(u => new
+            {
+                u.Id,
+                u.Name,
+                u.Surname,
+                u.IdMbtiType,
+                PicUrl = u.Avatars
+                    .Where(a => a.IsActive == true)
+                    .Select(a => a.AvatarUrl)
+                    .FirstOrDefault(),
+                Compatibility = sortByCompatibility && currentMbtiId != 0
+                    ? _context.MbtiCompatibilities
+                        .Where(c => c.SourceMbtiTypeId == currentMbtiId && c.TargetMbtiTypeId == u.IdMbtiType)
+                        .Select(c => (int?)c.CompatibilityPercentage)
+                        .FirstOrDefault()
+                    : null
+            });
+
+        if (sortByCompatibility && currentMbtiId != 0)
+            query = query.OrderByDescending(x => x.Compatibility ?? 0).ThenBy(x => x.Id);
+        else
+            query = query.OrderBy(x => x.Id);
+
+        return await query
+            .Select(x => new FriendDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Surname = x.Surname,
+                PicUrl = x.PicUrl,
+                Mbti = x.IdMbtiType,
+                CompatibilityPercentage = x.Compatibility
+            })
+            .ToListAsync();
     }
     private PrivateUserModel Converter(User user)//метод конвертирующие из User-сущности в PrivateUserModel 
     {

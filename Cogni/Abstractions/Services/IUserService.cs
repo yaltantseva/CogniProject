@@ -19,7 +19,7 @@ public interface IUserService
     Task<bool> ChangePassword(int id, string oldPassword, string newPassword);//изменить пароль
     Task<bool> ChangeDescription(int id, string description);//изменить описание
     Task<string?> GetUserRole(int id);//возвращает роль пользователя для обновления access-токена при рефреше
-    Task<List<FriendDto>> GetRandomUsers(int userId, int startsFrom, int limit);//используется для получения случайных пользователей на странице с поиском друзей
-    Task<List<FriendDto>> SearchUserByNameAndType(int userId, string NameSurname, int mbtiType);//поиск друзей по типу и имени
+    Task<List<FriendDto>> GetRandomUsers(int userId, int startsFrom, int limit, bool sortByCompatibility = false);
+    Task<List<FriendDto>> SearchUserByNameAndType(int userId, string NameSurname, int mbtiType, bool sortByCompatibility = false);
     Task<List<PublicUserModel>> GetUsersByIds(List<int> userIds);
 }
