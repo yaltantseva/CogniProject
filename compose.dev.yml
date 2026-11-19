@@ -1,7 +1,7 @@
 services:
   rabbitmq:
     image: "rabbitmq:management"
-    restart: always
+    restart: unless-stopped
     ports:
       - "5003:5672"
       - "15672:15672"
@@ -17,7 +17,7 @@ services:
 
   postgres:
     image: "postgres:latest"
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -33,7 +33,7 @@ services:
 
   redis:
     image: redis:7.2.4-alpine
-    restart: always
+    restart: unless-stopped
     ports:
       - "5002:6379"
     command:
@@ -54,7 +54,7 @@ services:
 
   minio:
     image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
-    restart: always
+    restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: admin
@@ -75,7 +75,7 @@ services:
     build:
       context: .
       dockerfile: ./Cogni/Dockerfile.dev
-    restart: always
+    restart: unless-stopped
     command: ["run"]
     environment:
       MIGRATE: 'true'
@@ -99,7 +99,7 @@ services:
     ports:
       - 5108:5108
     image: chat-backend
-    restart: always
+    restart: unless-stopped
     entrypoint: ["sh", "-c"]
     command: ["sleep 45; exec dotnet run"]
     depends_on:
@@ -119,7 +119,7 @@ services:
     build:
       context: ./ChatDevFrontend
       dockerfile: Dockerfile.dev
-    restart: always
+    restart: unless-stopped
     environment:
       - CHOKIDAR_USEPOLLING=true
       - VITE_DOCKER_DEV=true
