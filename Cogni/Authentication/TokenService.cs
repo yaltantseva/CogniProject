@@ -38,8 +38,19 @@ public class TokenService : ITokenService
     public string GenerateRefreshToken(int userId)
     {
         var refreshToken = Guid.NewGuid().ToString();
-        _redisDb.StringSet($"refresh_token:{refreshToken}", userId.ToString(), 
-                            TimeSpan.FromMinutes(AuthOptions.RefreshTokenExpirationTime));
+
+        _redisDb.StringSet(
+            $"refresh_token:{refreshToken}",
+            userId.ToString(),
+            TimeSpan.FromMinutes(AuthOptions.RefreshTokenExpirationTime));
+
+        _redisDb.SetAdd(
+            $"user_refresh_tokens:{userId}",
+            refreshToken);
+        _redisDb.KeyExpire(
+            $"user_refresh_tokens:{userId}",
+            TimeSpan.FromMinutes(AuthOptions.RefreshTokenExpirationTime));
+
         return refreshToken;
     }
     public AccessTokenPayload GetTokenPayload(string token, bool allowExpired=false){
@@ -55,5 +66,18 @@ public class TokenService : ITokenService
     public DateTime GetAccessTokenExpireTime()
     {
         return DateTime.UtcNow.AddMinutes(AuthOptions.AccessTokenExpirationTime);
+    }
+    public async Task RevokeRefreshTokens(int userId)
+    {
+        var key = $"user_refresh_tokens:{userId}";
+
+        var refreshTokens = await _redisDb.SetMembersAsync(key);
+
+        foreach (var refreshToken in refreshTokens)
+        {
+            await _redisDb.KeyDeleteAsync($"refresh_token:{refreshToken}");
+        }
+
+        await _redisDb.KeyDeleteAsync(key);
     }
 }
