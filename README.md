@@ -9,29 +9,9 @@
 Для локальной разработки и тестирования используется **Docker Compose**. Он поднимает всю необходимую инфраструктуру (PostgreSQL, Redis, RabbitMQ, MinIO) и сервисы приложения.
 
 ### Предварительные требования
-* Заполненный [dockerized.secrets.json](#как-заполнить-dockerizedsecretsjson)
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) (запущенный)
 * PowerShell (или совместимый терминал)
 * *(Опционально)* [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) — только если планируется запуск бэкенда без Docker.
-
----
-
-### Как заполнить [dockerized.secrets.json](./dockerized.secrets.json)
-**Нужно регистрироваться на uploadcare.com и записать ключи в dockerized.secrets.json следующим образом:**
-1. Переходите по https://app.uploadcare.com/, регистрируйтесь, затем:
-2. Создаёте новый проект (кнопка Create project)
-3. Вводите название проекта (пр.: Cogni)
-4. Оставляете чекбокс Built-In Storage
-5. Далее на панели слева выбираете API Keys.
-6. Здесь как раз берёте Public key и записываете его в dockerized.secrets.json в поле `ImageRepository:UPLOADCARE_PUB_KEY`
-7. Также создаёте новый Private key и записываете его уже в поле `ImageRepository:UPLOADCARE_SECRET_KEY`
-8. Далее на панели слева переходите в Files, нажимаете Quick start в центре страницы, пролистывайте вниз до Deliver and transform. Тут будет ссылка вида:
-```
-Your project's CDN domain       File UUID
-https://76qb94nxry.ucarecd.net/00000000-0000-0000-0000-000000000000
-```
-9. Вам нужно скопировать первую часть этой ссылки без `https://` до `.ucarecd.net` (на этом примере это `76qb94nxry`) и записать в dockerized.secrets.json в поле `ImageRepository:UPLOADCARE_BASE_CDN` вместо `YOUR_PART_HERE`
-10. Готово!
 
 ---
 
@@ -41,7 +21,15 @@ https://76qb94nxry.ucarecd.net/00000000-0000-0000-0000-000000000000
    Убедитесь в наличии файла `dockerized.secrets.json` в корне проекта.  
    Compose автоматически монтирует его в оба backend-контейнера (`dev_cogni` и `dev_chat_service`) как `secrets.json`.
 
-2. **Запустите бэкенд и инфраструктуру**  
+2. **Инициализируйте MinIO**
+   Запустите из корня проекта:
+   ```powershell
+   docker compose -f compose.dev.yml up minio-init
+   ```
+   Сервис дождётся готовности MinIO, создаст бакеты chat-files и cogni-media, а также настроит публичное чтение для cogni-media.
+   После успешной инициализации контейнер завершится с кодом 0. Это нормальное поведение.
+
+3. **Запустите бэкенд и инфраструктуру**  
    Из корня проекта выполните:
    ```powershell
    # Запуск с выводом логов в консоль:
@@ -52,13 +40,13 @@ https://76qb94nxry.ucarecd.net/00000000-0000-0000-0000-000000000000
    ```
    > ℹ️ **Примечание:** При первом запуске с активным VPN скачивание базовых образов может потребовать больше времени или повторной попытки.
 
-3. **Заполните базу тестовыми данными (сидирование)**  
+4. **Заполните базу тестовыми данными (сидирование)**  
    После успешного старта контейнеров накатите тестовые профили:
    ```powershell
    .\Cogni\seed-dev.ps1 -Password "CogniDemo123!"
    ```
 
-4. **Запустите frontend для отладки чатов (опционально)**  
+5. **Запустите frontend для отладки чатов (опционально)**  
    Фронтенд запускается в режиме Compose Watch (с авто-синхронизацией изменений кода):
    ```powershell
    docker compose -f compose.dev.yml watch dev_chat_frontend
@@ -70,17 +58,25 @@ https://76qb94nxry.ucarecd.net/00000000-0000-0000-0000-000000000000
 
 Если вы хотите отлаживать C# код непосредственно в Visual Studio / Rider или через `dotnet run`:
 
-1. Поднимите только инфраструктурные сервисы:
+1. Поднимите инфраструктуру:
    ```powershell
    docker compose -f compose.dev.yml up postgres redis rabbitmq minio -d
    ```
-2. Скопируйте файл `localdev.secrets.json` в проекты как `secrets.json`:
+2. Инициализируйте MinIO:
+   ```powershell
+   docker compose -f compose.dev.yml up minio-init
+   ```
+3. Скопируйте файл `localdev.secrets.json` в проекты как `secrets.json`:
    * В папку `Cogni/secrets.json`
    * В папку `ChatService/secrets.json`
-3. Запустите проекты через IDE или терминал:
+4. Запустите каждый бэкенд в отдельном терминале:
+   В первом терминале:
+   ```powershell
+   dotnet run --project ChatService/ChatService.csproj
+   ```
+   Во втором терминале:
    ```powershell
    dotnet run --project Cogni/Cogni.csproj
-   dotnet run --project ChatService/ChatService.csproj
    ```
 
 ---
@@ -161,9 +157,6 @@ CogniProject/
 ├── haproxy/                 # Балансировщик и reverse proxy для production
 │   └── haproxy.cfg          # Конфигурация маршрутизации запросов между фронтендом и бэкендами
 │
-├── minio/                   # Конфигурация объектного хранилища файлов
-│   └── init.sh              # Скрипт инициализации бакета 'chat-files' и политик доступа
-│
 ├── compose.dev.yml          # Docker Compose для локальной разработки (монтирование исходников, debug)
 ├── compose.prod.yml         # Docker Compose для релизного развёртывания (HAProxy, production build)
 ├── dockerized.secrets.json  # Конфигурация строк подключения для контейнеров Docker
@@ -177,6 +170,56 @@ CogniProject/
 * **`ChatService`** — изолированный сервис для обмена сообщениями. Использует SignalR (WebSockets) для мгновенной доставки сообщений, Redis для хранения активных соединений и состояний, RabbitMQ для брокера событий и MinIO для хранения медиафайлов и вложений сообщений.
 * **`Shared`** — разделяемый проект, исключающий дублирование кода. Содержит общую схему базы данных PostgreSQL (`CogniDbContext`), описание всех 17+ сущностей и общую логику подписания и проверки JWT-токенов.
 * **`ChatDevFrontend`** — легковесный стенд, позволяющий разработчикам тестировать подключение к хабу, обмен сообщениями и загрузку файлов без необходимости поднимать полномасштабный клиентский интерфейс.
+
+---
+
+### Хранилище
+В проекте используется MinIO-совместимое S3-хранилище Silo для хранения пользовательских изображений и файловых вложений.
+
+В проекте используются два отдельных бакета:
+| Бакет | Назначение | Доступ |
+| :---- | -------- | :---- |
+| `cogni-media` | Аватары пользователей, баннеры и другие изображения основного сервиса Cogni | Публичное чтение (download) |
+| `chat-files` | Файловые вложения и медиафайлы ChatService | Политика доступа ChatService; minio-init её не изменяет |
+
+Важно: бакеты разделены намеренно. Cogni и ChatService используют общее хранилище, но работают с разными пространствами объектов. Не следует загружать пользовательские аватары и баннеры в `chat-files` или менять его политику доступа при настройке `cogni-media`.
+
+В `compose.dev.yml` определены два сервиса:
+- `minio` — запускает Silo, предоставляет S3-совместимый API и веб-консоль.
+- `minio-init` — одноразовый сервис первоначальной настройки хранилища.
+
+При запуске `minio-init`:
+1. Ожидает, пока MinIO перейдёт в состояние `Healthy`.
+2. Подключается к хранилищу с помощью утилиты `mc`.
+3. Создаёт бакеты `chat-files` и `cogni-media`, если они ещё не существуют.
+4. Включает анонимное чтение объектов в бакете `cogni-media`.
+```powershell
+docker compose -f compose.dev.yml up minio-init
+```
+
+После успешного выполнения контейнер `minio-init` завершает работу с кодом `0`. Повторный запуск безопасен: существующие бакеты не пересоздаются.
+
+Настройки MinIO задаются в dockerized.secrets.json и localdev.secrets.json в секции Minio.
+Пример конфигурации:
+```json
+{
+  "Minio": {
+    "Endpoint": "minio:9000",
+    "AccessKey": "your-access-key",
+    "SecretKey": "your-secret-key",
+    "PublicUrl": "http://localhost:9000"
+  }
+}
+```
+- `Endpoint` — адрес S3 API, по которому backend подключается к хранилищу. 
+  В Docker Compose используется `minio:9000`, при локальном запуске .NET на хосте — `127.0.0.1:9000`.
+- `PublicUrl` — внешний базовый адрес, который используется для формирования URL изображений. 
+  Он должен быть доступен клиентскому браузеру. Для локальной разработки обычно используется `http://localhost:9000`.
+- `AccessKey` и `SecretKey` — учётные данные для подключения backend к хранилищу.
+
+Веб-консоль Silo доступна по адресу: [http://localhost:9001](http://localhost:9001)
+S3 API доступен по адресу: [http://localhost:9000](http://localhost:9000)
+
 
 ---
 
@@ -208,7 +251,7 @@ dotnet ef database update --project Cogni/Cogni.csproj --startup-project Cogni/C
 
 * Скрипт **идемпотентный**: повторный вызов не создает дубликатов.
 * Перед заполнением скрипт автоматически валидирует и применяет миграции.
-* Создаёт данные во всех таблицах базы (пользователи, профили, статьи, посты, теги и категории хобби). Фотографии подставляются тестовыми ссылками (аккаунт Uploadcare для локального сидирования не требуется).
+* Создаёт данные во всех таблицах базы (пользователи, профили, статьи, посты, теги и категории хобби). Фотографии подставляются тестовыми URL. Для локального сидирования отдельный аккаунт внешнего сервиса хранения изображений не требуется.
 * По умолчанию для всех аккаунтов задаётся пароль: `CogniDemo123!` (или значение, переданное в параметре `-Password`).
 
 #### Предустановленные тестовые пользователи:
@@ -220,3 +263,6 @@ dotnet ef database update --project Cogni/Cogni.csproj --startup-project Cogni/C
 * `max.demo@cogni.local`
 * `kate.demo@cogni.local`
 * `dmitry.demo@cogni.local`
+
+
+

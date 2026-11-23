@@ -17,15 +17,12 @@ public class ImageService : IImageService
     public async Task<(string Url, string Id)> UploadImage(IFormFile inputFile)
     {
         var file = _imageConverterService.ConvertAndResizeImage(inputFile);
-
         if (!file.ContentType.StartsWith("image/jpeg") && !file.ContentType.StartsWith("image/png"))
             throw new InvalidDataException("Изображения должны быть в формате JPG или PNG");
         using var stream = file.OpenReadStream();
         using var image = await Image.LoadAsync(stream);
         if (image.Width < 64 || image.Height < 64 || image.Width > 1024 || image.Height > 1024)
-        {
             throw new InvalidDataException("Разрешение изображения должно быть между 64x64 и 1024x1024");
-        }
         
         return await _imageRepository.UploadImage(file);
     }

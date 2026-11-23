@@ -151,7 +151,7 @@ namespace Cogni.Controllers
         /// Удаляет текущий баннер
         /// </summary>
         [Authorize]
-        [HttpDelete("RemoveBanner")]
+        [HttpDelete]
         public async Task<ActionResult> RemoveBanner()
         {
             if (User.GetUserId() is not int id) return Unauthorized();
