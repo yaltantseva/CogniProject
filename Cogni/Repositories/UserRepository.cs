@@ -1,4 +1,5 @@
 ﻿using Cogni.Abstractions.Repositories;
+using Cogni.Abstractions.Services;
 using Cogni.Database.Context;
 using Cogni.Database.Entities;
 using Cogni.Models;
@@ -10,12 +11,17 @@ public class UserRepository : IUserRepository
     readonly CogniDbContext _context;
 
     readonly ILogger<UserRepository> _logger;
+    private readonly IImageService _imageService;
 
 
-    public UserRepository(CogniDbContext context, ILogger<UserRepository> logger) 
-    {
+    public UserRepository(
+        CogniDbContext context,
+        IImageService imageService,
+        ILogger<UserRepository> logger
+    ) {
         _logger = logger;
         _context = context;
+        _imageService = imageService;
     }
 
     public async Task<bool> CheckUser(string login)
@@ -115,6 +121,18 @@ public class UserRepository : IUserRepository
         var user = await _context.Users.FindAsync(id);
         if (user is null) return null;
 
+        if (!string.IsNullOrWhiteSpace(user.BannerImage))
+        {
+            var oldFileId = Uri.TryCreate(user.BannerImage, UriKind.Absolute, out var uri)
+                ? Path.GetFileName(uri.AbsolutePath)
+                : Path.GetFileName(user.BannerImage);
+
+            if (!string.IsNullOrWhiteSpace(oldFileId))
+            {
+                await _imageService.DeleteImage(oldFileId);
+            }
+        }
+
         user.BannerImage = picLink;
         await _context.SaveChangesAsync();
         return user.BannerImage;
@@ -124,6 +142,18 @@ public class UserRepository : IUserRepository
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null) return false;
+
+        if (!string.IsNullOrWhiteSpace(user.BannerImage))
+        {
+            var fileId = Uri.TryCreate(user.BannerImage, UriKind.Absolute, out var uri)
+                ? Path.GetFileName(uri.AbsolutePath)
+                : Path.GetFileName(user.BannerImage);
+
+            if (!string.IsNullOrWhiteSpace(fileId))
+            {
+                await _imageService.DeleteImage(fileId);
+            }
+        }
 
         user.BannerImage = null;
         await _context.SaveChangesAsync();

@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Reflection;
+using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,6 +87,17 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     return ConnectionMultiplexer.Connect(configuration);
 });
 
+builder.Services.AddMinio(client =>
+{
+    var minioEndpoint = builder.Configuration.GetValue<string>("Minio:Endpoint");
+    var minioAccessKey = builder.Configuration.GetValue<string>("Minio:AccessKey");
+    var minioSecretKey = builder.Configuration.GetValue<string>("Minio:SecretKey");
+
+    client.WithEndpoint(minioEndpoint)
+          .WithCredentials(minioAccessKey, minioSecretKey)
+          .WithSSL(false);
+});
+
 builder.Services.AddDbContext<CogniDbContext>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -101,7 +113,7 @@ builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IFriendRepository, FriendRepository>();
 builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IImageService, ImageService>();
-builder.Services.AddHttpClient<IImageRepository, ImageRepository>();
+builder.Services.AddScoped<IImageRepository, ImageRepository>();
 builder.Services.AddScoped<IMbtiRepository, MbtiRepository>();
 builder.Services.AddScoped<IMbtiService, MbtiService>();
 builder.Services.AddScoped<IImageConverterService, ImageConverterService>();
