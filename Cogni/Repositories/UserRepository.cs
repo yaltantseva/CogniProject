@@ -121,6 +121,18 @@ public class UserRepository : IUserRepository
         var user = await _context.Users.FindAsync(id);
         if (user is null) return null;
 
+        if (!string.IsNullOrWhiteSpace(user.BannerImage))
+        {
+            var oldFileId = Uri.TryCreate(user.BannerImage, UriKind.Absolute, out var uri)
+                ? Path.GetFileName(uri.AbsolutePath)
+                : Path.GetFileName(user.BannerImage);
+
+            if (!string.IsNullOrWhiteSpace(oldFileId))
+            {
+                await _imageService.DeleteImage(oldFileId);
+            }
+        }
+
         user.BannerImage = picLink;
         await _context.SaveChangesAsync();
         return user.BannerImage;
@@ -133,12 +145,14 @@ public class UserRepository : IUserRepository
 
         if (!string.IsNullOrWhiteSpace(user.BannerImage))
         {
-            var fileId = Path.GetFileName(
-                new Uri(user.BannerImage)
-                .AbsolutePath
-            );
+            var fileId = Uri.TryCreate(user.BannerImage, UriKind.Absolute, out var uri)
+                ? Path.GetFileName(uri.AbsolutePath)
+                : Path.GetFileName(user.BannerImage);
 
-            await _imageService.DeleteImage(fileId);
+            if (!string.IsNullOrWhiteSpace(fileId))
+            {
+                await _imageService.DeleteImage(fileId);
+            }
         }
 
         user.BannerImage = null;

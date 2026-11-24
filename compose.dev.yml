@@ -110,6 +110,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     ports:
       - 5279:5279
     volumes:
