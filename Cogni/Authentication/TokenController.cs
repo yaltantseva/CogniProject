@@ -20,30 +20,43 @@ public class TokenController : ControllerBase
         _tokenService = tokenService;
     }
 
-    /// <summary>
-    /// Обновляет access токен пользователя
-    /// </summary>
-    /// <remarks>Refresh-токен должен быть отправлен в заголовке "Refresh-token"</remarks>
-    /// <response code="200">Токен обновлен.</response>
-    /// <response code="401">Рефреш токен невалиден. Разлогиньте пользователя.</response>
     [HttpGet]
-    public async Task<ActionResult<TokenResponse>> Refresh()
+    public async Task<ActionResult<TokenResponse>> Refresh(
+    [FromHeader(Name = "Refresh-token")] string? refreshToken)
     {
-        string? refreshToken = Request.Headers["Refresh-token"];
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
             return Unauthorized("Refresh token is missing");
         }
-
-        var userIdStr = await _redisDb.StringGetDeleteAsync($"refresh_token:{refreshToken}");
-        if (userIdStr.IsNullOrEmpty) {return Unauthorized("Refresh token is invalid or expired");}
-        var userId = int.Parse(userIdStr!);
+        var tokenKey = $"refresh_token:{refreshToken}";
+        var userIdStr = await _redisDb.StringGetAsync(tokenKey);
+        if (userIdStr.IsNullOrEmpty)
+        {
+            return Unauthorized("Refresh token is invalid or expired");
+        }
+        if (!int.TryParse(userIdStr.ToString(), out var userId))
+        {
+            return Unauthorized("Invalid user ID");
+        }
+        var userTokensKey = $"user_refresh_tokens:{userId}";
+        if (!await _redisDb.SetContainsAsync(userTokensKey, refreshToken))
+        {
+            return Unauthorized("Refresh token is invalid");
+        }
+        var deletedUserId = await _redisDb.StringGetDeleteAsync(tokenKey);
+        if (deletedUserId.IsNullOrEmpty)
+        {
+            return Unauthorized("Refresh token is invalid or expired");
+        }
+        await _redisDb.SetRemoveAsync(userTokensKey, refreshToken);
         var role = await _userService.GetUserRole(userId);
-        if (role == null) {return Unauthorized("Can't find role! Refresh token is invalid?");} // Возможно только если пользователь удален
-        var newAToken = _tokenService.GenerateAccessToken(new AccessTokenPayload(userId, role));
-        var newRefreshToken = Guid.NewGuid().ToString();
-        await _redisDb.StringSetAsync($"refresh_token:{newRefreshToken}", userId.ToString(), 
-                            TimeSpan.FromMinutes(AuthOptions.RefreshTokenExpirationTime));
+        if (role == null)
+        {
+            return Unauthorized("Can't find role! Refresh token is invalid?");
+        }
+        var newAToken = _tokenService.GenerateAccessToken(
+            new AccessTokenPayload(userId, role));
+        var newRefreshToken = _tokenService.GenerateRefreshToken(userId);
         return Ok(new TokenResponse(
             newAToken,
             newRefreshToken,
@@ -51,7 +64,6 @@ public class TokenController : ControllerBase
             _tokenService.GetRefreshTokenExpireTime()
         ));
     }
-
     /// <summary>
     /// Завершает сессию и отзывает refresh-токен
     /// </summary>

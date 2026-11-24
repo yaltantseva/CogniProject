@@ -64,13 +64,18 @@ public class UserService : IUserService
     public async Task<bool> ChangePassword(int id, string oldPassword, string newPassword)
     {
         var user = await _userRepository.GetUserCredsById(id);
-        if (
-            user is null
-            || !_passwordHasher.VerifyPassword(oldPassword, user.PasswordHash, user.Salt)
-        ) return false;
-
-        var newHash = _passwordHasher.HashPassword(newPassword, out byte[] salt);    
-        return await _userRepository.ChangePassword(id,newHash, salt);
+        if (user is null || !_passwordHasher.VerifyPassword(oldPassword, user.PasswordHash, user.Salt)) 
+        {
+            return false;
+        }
+        var newHash = _passwordHasher.HashPassword(newPassword, out byte[] salt);
+        var passwordChanged = await _userRepository.ChangePassword(id, newHash, salt);
+        if (!passwordChanged)
+        {
+            return false;
+        }
+        await _tokenService.RevokeRefreshTokens(id);
+        return true;
     }
 
     public async Task<bool> ChekUser(string email)

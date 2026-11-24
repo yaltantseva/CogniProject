@@ -8,4 +8,5 @@ public interface ITokenService
     AccessTokenPayload GetTokenPayload(string token, bool allowExpired=false);
     DateTime GetRefreshTokenExpireTime();
     DateTime GetAccessTokenExpireTime();
+    Task RevokeRefreshTokens(int userId);
 }
