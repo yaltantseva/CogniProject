@@ -95,26 +95,50 @@ namespace Cogni.Controllers
         /// </summary>
         /// 
 
-  
+
+
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult<List<PostResponse>>> GetAllUserPost([FromQuery] int id)
+        public async Task<ActionResult<List<PostResponse>>> GetAllUserPost(
+            [FromQuery] int id,
+            [FromQuery] int limit = 20,
+            [FromQuery] int? cursor = null)
         {
             if (!TryGetCurrentUserId(out int currentUserId))
                 return Unauthorized();
 
-            var posts = await _postService.GetAllUserPosts(id);
+            if (limit < 1 || limit > 100)
+                return BadRequest("Limit must be between 1 and 100.");
+
+            if (cursor.HasValue && cursor.Value <= 0)
+                return BadRequest("Cursor must be a positive post ID.");
+
+            var posts = await _postService.GetAllUserPosts(
+                id,
+                limit,
+                cursor);
+
+            var postIds = posts
+                .Select(post => post.Id)
+                .ToList();
+
+            var reactionsInfo = await _postService.GetReactionsInfoBatchAsync(
+                postIds,
+                currentUserId);
+
             var list = new List<PostResponse>();
 
             foreach (var post in posts)
             {
                 var urls = post.PostImages
-                    .Select(u => u.ImageUrl)
+                    .Select(image => image.ImageUrl)
                     .ToList();
 
-                var reactionInfo = await _postService.GetReactionInfoAsync(
+                var reactionInfo = reactionsInfo.TryGetValue(
                     post.Id,
-                    currentUserId);
+                    out var info)
+                        ? info
+                        : (ReactionsCount: 0, IsReactedByCurrentUser: false);
 
                 list.Add(new PostResponse(
                     post.Id,
@@ -128,6 +152,7 @@ namespace Cogni.Controllers
 
             return Ok(list);
         }
+
 
 
         [HttpPost]
